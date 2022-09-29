@@ -55,6 +55,7 @@ function _update()
     --check if ball hits pad
     pad_c=white;
     if (ball_box(pad_x, pad_y, pad_w, pad_h)) then
+        ball_dy=-ball_dy
         pad_c=red;
     end
 end
@@ -67,21 +68,79 @@ end
 
 --check collision between ball and any zone
 function ball_box(box_x, box_y, box_w, box_h)
-    if (ball_y-ball_r>box_y+box_h) then
-        return false       
-    end
-    if (ball_y+ball_r<box_y) then
-        return false       
+    if (ball_y-ball_r>box_y+box_h) then return false end
+    if (ball_y+ball_r<box_y) then return false end
+    if (ball_x-ball_r>box_x+box_w) then return false end
+    if (ball_x+ball_r<box_x) then return false end    
+    return true
+end
+
+--calculate where to deflect
+--bx-bdy ball positon and speed, tx-th target position and size 
+function deflx_ball_box(bx, by, bdx, bdy, tx, ty, tw, th)
+    --vertical and horizontal movevement solution
+    if bdx==0 then 
+        return false
+    elseif bdy==0 then
+        return true
     end
 
-    if (ball_x-ball_r>box_x+box_w) then
-        return false       
+    local slp = bdy/bdx
+    local cx, cy
+    
+    --down right
+    if slp>0 and bdx>0 then
+        cx=tx-bx
+        cy=ty-by
+        if cx<=0 then
+            return false
+        elseif cy/cx<slp then
+            return true
+        else
+            return false
+        end    
     end
-    if (ball_x+ball_r<box_x) then
-        return false       
+
+    --up right
+    if slp<0 and bdx>0 then
+        cx=tx-bx
+        cy=ty+th-by
+        if cx<=0 then
+            return false
+        elseif cy/cx<slp then
+            return false
+        else
+            return true
+        end
+    end
+
+    --up left
+    if slp>0 and bdx<0 then
+        cx=tx+tw-bx
+        cy=ty+th-by
+        if cx>=0 then
+            return false
+        elseif cy/cx>slp then
+            return false
+        else
+            return true
+        end
     end
     
-    return true
+    --down left
+    if slp<0 and bdx<0 then
+        cx=tx+tw-bx
+        cy=ty-by
+        if cx>=0 then
+            return false
+        elseif cy/cx<slp then
+            return false
+        else
+            return true
+        end
+    end
+
+    return false
 end
 
 
