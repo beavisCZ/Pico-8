@@ -8,10 +8,12 @@ function _init()
     left,right,up,down,fire1,fire2=0,1,2,3,4,5
     black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,orange,yellow,green,blue,indigo,pink,peach=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
   
-    ball_x=1
-    ball_dx=2
+    mode="start"
+
+    ball_x=10
+    ball_dx=1
     ball_y=64
-    ball_dy=2
+    ball_dy=1
     ball_r=2
     
     pad_x=52
@@ -22,56 +24,143 @@ function _init()
     pad_c=white
 end
 
-function _update()
+function _update60()
+    if (mode=="game") then
+        update_game()       
+    elseif (mode=="start") then
+        update_start()
+    elseif (mode=="gameover") then
+        update_gameover()
+    end
+end
+
+function update_start()
+    if (btn(fire2)) then
+        startgame()
+    end
+end
+
+function update_gameover()
+    if (btn(fire2)) then
+        startgame()
+    end
+end
+
+function update_game()
     local buttpress=false
+    local nextx, nexty
 
     if (btn(left)) then
         buttpress=true
-        pad_dx=-5
+        pad_dx=-2.5
     end
     if (btn(right)) then
         buttpress=true
-        pad_dx=5
+        pad_dx=2.5
     end
     if not (buttpress) then
-        pad_dx=pad_dx/1.7
+        pad_dx=pad_dx/1.4
      end
 
-    pad_x+=pad_dx
-      
-     ball_x+=ball_dx
-    ball_y+=ball_dy
- 
+    pad_x+=pad_dx    
+    
+    nextx=ball_x+ball_dx
+    nexty=ball_y+ball_dy
+
     --ball bouncing
-    if ball_x<0 or ball_x>127 then
+    if nextx<2 or nextx>125 then
+        nextx=mid(2,nextx,125)
         ball_dx=-ball_dx
         sfx(0)
     end
-    if ball_y<0 or ball_y>127 then
+    if nexty<8  then
+        nexty=8
         ball_dy=-ball_dy
         sfx(0)
     end
 
     --check if ball hits pad
     pad_c=white;
-    if (ball_box(pad_x, pad_y, pad_w, pad_h)) then
-        ball_dy=-ball_dy
-        pad_c=red;
+    if (ball_box(nextx, nexty, pad_x, pad_y, pad_w, pad_h)) then
+        if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, pad_x, pad_y, pad_w, pad_h)) then
+            ball_dx=-ball_dx
+        else
+            ball_dy=-ball_dy
+        end
+        sfx(1)
+        score+=1
+    end
+
+    ball_x=nextx
+    ball_y=nexty
+
+    if (nexty>127) then
+        sfx(2)
+        lives-=1
+        if lives>0 then
+            serveball()
+        else
+            gameover()
+        end
     end
 end
 
+function startgame()
+    mode="game"
+    lives=3
+    score=0
+    serveball()
+end
+
+function gameover()
+    mode="gameover"
+end
+
+function serveball()
+    ball_x=63
+    ball_dx=1
+    ball_y=32
+    ball_dy=1
+end
+
 function _draw()
+    if (mode=="game") then
+        draw_game()       
+    elseif (mode=="start") then
+        draw_start()
+    elseif (mode=="gameover") then
+        draw_gameover()
+    end
+end
+
+function draw_start()
+    cls(orange)
+    print("cihloid",50,40,white)
+    print("press ❎ to start ",30,60, red)
+end
+
+function draw_gameover()
+    cls(orange)
+    print("game over",45,40,white)
+    print("press ❎ to start ",30,60, red)
+end
+
+function draw_game()
     cls(dark_blue)
     circfill(ball_x,ball_y,ball_r,10)
     rectfill(pad_x,pad_y,pad_x+pad_w,pad_y+pad_h,pad_c)
+    
+    rectfill(0,0,128,6,black)
+    print("lives:"..lives,1,1,white)
+    print("score:"..score,90,1,white)
 end
 
 --check collision between ball and any zone
-function ball_box(box_x, box_y, box_w, box_h)
-    if (ball_y-ball_r>box_y+box_h) then return false end
-    if (ball_y+ball_r<box_y) then return false end
-    if (ball_x-ball_r>box_x+box_w) then return false end
-    if (ball_x+ball_r<box_x) then return false end    
+function ball_box(bx, by, box_x, box_y, box_w, box_h)
+    if (by-ball_r>box_y+box_h) then return false end
+    if (by+ball_r<box_y) then return false end
+    if (bx-ball_r>box_x+box_w) then return false end
+    if (bx+ball_r<box_x) then return false end    
     return true
 end
 
@@ -152,4 +241,6 @@ __gfx__
 00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-0001000016350163501634016330163201631020300203001f3001a000170001700018400174001640016400164001b40023400264002c4002d4001f0001f0002100021000220002300036000320002c00029000
+0001000016330163301632016320163101631020300203001f3001a000170001700018400174001640016400164001b40023400264002c4002d4001f0001f0002100021000220002300036000320002c00029000
+000100002233022330223202232022310223100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00030000283502835028350253501e350143301433017350193500f3400c340000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
