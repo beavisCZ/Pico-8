@@ -22,6 +22,15 @@ function _init()
     pad_w=24
     pad_h=3
     pad_c=white
+    
+    brick_x=5
+    brick_y=20
+    brick_w=10
+    brick_h=4
+    brick_v=true
+
+    lives=3
+    score=0
 end
 
 function _update60()
@@ -62,7 +71,8 @@ function update_game()
         pad_dx=pad_dx/1.4
      end
 
-    pad_x+=pad_dx    
+    pad_x+=pad_dx
+    pad_x=mid(0,pad_x,127-pad_w)    
     
     nextx=ball_x+ball_dx
     nexty=ball_y+ball_dy
@@ -80,7 +90,6 @@ function update_game()
     end
 
     --check if ball hits pad
-    pad_c=white;
     if (ball_box(nextx, nexty, pad_x, pad_y, pad_w, pad_h)) then
         if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, pad_x, pad_y, pad_w, pad_h)) then
             ball_dx=-ball_dx
@@ -89,6 +98,20 @@ function update_game()
         end
         sfx(1)
         score+=1
+    end
+
+    --check if ball hits brick
+    if (brick_v) then
+        if (ball_box(nextx, nexty, brick_x, brick_y, brick_w, brick_h)) then
+            if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick_x, brick_y, brick_w, brick_h)) then
+                ball_dx=-ball_dx
+            else
+                ball_dy=-ball_dy
+            end
+            sfx(1)
+            score+=10
+            brick_v=false
+        end
     end
 
     ball_x=nextx
@@ -148,6 +171,12 @@ end
 function draw_game()
     cls(dark_blue)
     circfill(ball_x,ball_y,ball_r,10)
+    
+    --draw bricks
+    if (brick_v) then
+        rectfill(brick_x, brick_y, brick_x+brick_w, brick_y+brick_h, orange)
+    end
+
     rectfill(pad_x,pad_y,pad_x+pad_w,pad_y+pad_h,pad_c)
     
     rectfill(0,0,128,6,black)
