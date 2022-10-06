@@ -1,7 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 36
 __lua__
-
+-- cihloid
+-- by beaviscz
 
 function _init()
     cls()
@@ -12,7 +13,7 @@ function _init()
 
     ball_x=10
     ball_dx=1
-    ball_y=64
+    ball_y=90
     ball_dy=1
     ball_r=2
     
@@ -23,11 +24,11 @@ function _init()
     pad_h=3
     pad_c=white
     
-    brick_x=5
-    brick_y=20
+    brick_x={}
+    brick_y={}
+    brick_v={}
     brick_w=10
     brick_h=4
-    brick_v=true
 
     lives=3
     score=0
@@ -101,16 +102,18 @@ function update_game()
     end
 
     --check if ball hits brick
-    if (brick_v) then
-        if (ball_box(nextx, nexty, brick_x, brick_y, brick_w, brick_h)) then
-            if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick_x, brick_y, brick_w, brick_h)) then
-                ball_dx=-ball_dx
-            else
-                ball_dy=-ball_dy
+    for i=1,#brick_x do
+        if (brick_v[i]) then
+            if (ball_box(nextx, nexty, brick_x[i], brick_y[i], brick_w, brick_h)) then
+                if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick_x[i], brick_y[i], brick_w, brick_h)) then
+                    ball_dx=-ball_dx
+                else
+                    ball_dy=-ball_dy
+                end
+                sfx(1)
+                score+=10
+                brick_v[i]=false
             end
-            sfx(1)
-            score+=10
-            brick_v=false
         end
     end
 
@@ -132,6 +135,7 @@ function startgame()
     mode="game"
     lives=3
     score=0
+    buildbricks()
     serveball()
 end
 
@@ -140,10 +144,24 @@ function gameover()
 end
 
 function serveball()
-    ball_x=63
+    ball_x=10
     ball_dx=1
-    ball_y=32
+    ball_y=70
     ball_dy=1
+end
+
+function buildbricks()
+    local i
+    brick_x={}
+    brick_y={}
+    brick_v={}
+    for j=1, 6 do
+        for i=1, 10 do
+            add(brick_x, 5+(i-1)*(brick_w+2)) 
+            add(brick_y, 20+(j-1)*(brick_h+2)) 
+            add(brick_v, true) 
+        end
+    end
 end
 
 function _draw()
@@ -173,8 +191,10 @@ function draw_game()
     circfill(ball_x,ball_y,ball_r,10)
     
     --draw bricks
-    if (brick_v) then
-        rectfill(brick_x, brick_y, brick_x+brick_w, brick_y+brick_h, orange)
+    for i=1,#brick_x do
+        if (brick_v[i]) then
+            rectfill(brick_x[i], brick_y[i], brick_x[i]+brick_w, brick_y[i]+brick_h, orange)
+        end      
     end
 
     rectfill(pad_x,pad_y,pad_x+pad_w,pad_y+pad_h,pad_c)
@@ -196,68 +216,29 @@ end
 --calculate where to deflect
 --bx-bdy ball positon and speed, tx-th target position and size 
 function deflx_ball_box(bx, by, bdx, bdy, tx, ty, tw, th)
-    --vertical and horizontal movevement solution
+    local slp = bdy/bdx
+    local cx, cy
     if bdx==0 then 
         return false
     elseif bdy==0 then
-        return true
-    end
-
-    local slp = bdy/bdx
-    local cx, cy
-    
-    --down right
-    if slp>0 and bdx>0 then
+            return true
+    elseif slp>0 and bdx>0 then
         cx=tx-bx
         cy=ty-by
-        if cx<=0 then
-            return false
-        elseif cy/cx<slp then
-            return true
-        else
-            return false
-        end    
-    end
-
-    --up right
-    if slp<0 and bdx>0 then
+        return cx>0 and cy/cx<slp
+    elseif slp<0 and bdx>0 then
         cx=tx-bx
         cy=ty+th-by
-        if cx<=0 then
-            return false
-        elseif cy/cx<slp then
-            return false
-        else
-            return true
-        end
-    end
-
-    --up left
-    if slp>0 and bdx<0 then
+        return cx>0 and cy/cx>=slp
+    elseif slp>0 and bdx<0 then
         cx=tx+tw-bx
         cy=ty+th-by
-        if cx>=0 then
-            return false
-        elseif cy/cx>slp then
-            return false
-        else
-            return true
-        end
-    end
-    
-    --down left
-    if slp<0 and bdx<0 then
+        return cx<0 and cy/cx<=slp
+    elseif slp<0 and bdx<0 then
         cx=tx+tw-bx
         cy=ty-by
-        if cx>=0 then
-            return false
-        elseif cy/cx<slp then
-            return false
-        else
-            return true
-        end
+        return cx<0 and cy/cx>=slp
     end
-
     return false
 end
 
