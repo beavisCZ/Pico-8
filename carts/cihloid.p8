@@ -4,6 +4,18 @@ __lua__
 -- cihloid
 -- by beaviscz
 
+-- finished tutorial 12
+-- todo:
+-- 1. sticky paddle
+-- 2. angle control
+-- 3. combos
+-- 4. levels
+-- 5. different bricks
+-- 6. powerups
+-- 7. juiciness (particles/screen shakes)
+-- 8. high score
+
+
 function _init()
     cls()
     left,right,up,down,fire1,fire2=0,1,2,3,4,5
@@ -94,8 +106,18 @@ function update_game()
     if (ball_box(nextx, nexty, pad_x, pad_y, pad_w, pad_h)) then
         if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, pad_x, pad_y, pad_w, pad_h)) then
             ball_dx=-ball_dx
+            if ball_x<pad_x+pad_w/2 then
+                nextx=pad_x-ball_r
+            else
+                nextx=pad_x+pad_w+ball_r
+            end
         else
             ball_dy=-ball_dy
+            if ball_y>pad_y then
+                nexty=pad_y+pad_h+ball_r
+            else
+                nexty=pad_y-ball_r
+            end
         end
         sfx(1)
         score+=1
@@ -113,6 +135,7 @@ function update_game()
                 sfx(1)
                 score+=10
                 brick_v[i]=false
+                break
             end
         end
     end
