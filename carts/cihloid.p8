@@ -4,15 +4,19 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 12
+-- finished tutorial 13
 -- todo:
--- 1. sticky paddle
+-- 1. sticky paddle DONE
 -- 2. angle control
 -- 3. combos
 -- 4. levels
 -- 5. different bricks
 -- 6. powerups
--- 7. juiciness (particles/screen shakes)
+-- 7. juiciness 
+    --arrow animation 
+    --text blinking
+    --particles
+    --screen shakes
 -- 8. high score
 
 
@@ -44,6 +48,7 @@ function _init()
 
     lives=3
     score=0
+
 end
 
 function _update60()
@@ -75,81 +80,98 @@ function update_game()
     if (btn(left)) then
         buttpress=true
         pad_dx=-2.5
+        if sticky then
+            ball_dx=-1
+        end
     end
     if (btn(right)) then
         buttpress=true
         pad_dx=2.5
+        if sticky then
+            ball_dx=1
+        end
     end
     if not (buttpress) then
         pad_dx=pad_dx/1.4
-     end
+    end
+
+    --btnp for not pressed last frame - eliminates button press from start menu
+    if btnp(fire2) then
+        if sticky then
+            sticky=false
+        end
+    end
 
     pad_x+=pad_dx
     pad_x=mid(0,pad_x,127-pad_w)    
     
-    nextx=ball_x+ball_dx
-    nexty=ball_y+ball_dy
+    if sticky then 
+        ball_x=pad_x+flr(pad_w/2)
+        ball_y=pad_y-ball_r-1
+    else
+        nextx=ball_x+ball_dx
+        nexty=ball_y+ball_dy
 
-    --ball bouncing
-    if nextx<2 or nextx>125 then
-        nextx=mid(2,nextx,125)
-        ball_dx=-ball_dx
-        sfx(0)
-    end
-    if nexty<8  then
-        nexty=8
-        ball_dy=-ball_dy
-        sfx(0)
-    end
-
-    --check if ball hits pad
-    if (ball_box(nextx, nexty, pad_x, pad_y, pad_w, pad_h)) then
-        if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, pad_x, pad_y, pad_w, pad_h)) then
+        --ball bouncing
+        if nextx<2 or nextx>125 then
+            nextx=mid(2,nextx,125)
             ball_dx=-ball_dx
-            if ball_x<pad_x+pad_w/2 then
-                nextx=pad_x-ball_r
-            else
-                nextx=pad_x+pad_w+ball_r
-            end
-        else
+            sfx(0)
+        end
+        if nexty<8  then
+            nexty=8
             ball_dy=-ball_dy
-            if ball_y>pad_y then
-                nexty=pad_y+pad_h+ball_r
-            else
-                nexty=pad_y-ball_r
-            end
+            sfx(0)
         end
-        sfx(1)
-        score+=1
-    end
-
-    --check if ball hits brick
-    for i=1,#brick_x do
-        if (brick_v[i]) then
-            if (ball_box(nextx, nexty, brick_x[i], brick_y[i], brick_w, brick_h)) then
-                if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick_x[i], brick_y[i], brick_w, brick_h)) then
-                    ball_dx=-ball_dx
+        --check if ball hits pad
+        if (ball_box(nextx, nexty, pad_x, pad_y, pad_w, pad_h)) then
+            if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, pad_x, pad_y, pad_w, pad_h)) then
+                ball_dx=-ball_dx
+                if ball_x<pad_x+pad_w/2 then
+                    nextx=pad_x-ball_r
                 else
-                    ball_dy=-ball_dy
+                    nextx=pad_x+pad_w+ball_r
                 end
-                sfx(1)
-                score+=10
-                brick_v[i]=false
-                break
+            else
+                ball_dy=-ball_dy
+                if ball_y>pad_y then
+                    nexty=pad_y+pad_h+ball_r
+                else
+                    nexty=pad_y-ball_r
+                end
+            end
+            sfx(1)
+            score+=1
+        end
+
+        --check if ball hits brick
+        for i=1,#brick_x do
+            if (brick_v[i]) then
+                if (ball_box(nextx, nexty, brick_x[i], brick_y[i], brick_w, brick_h)) then
+                    if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick_x[i], brick_y[i], brick_w, brick_h)) then
+                        ball_dx=-ball_dx
+                    else
+                        ball_dy=-ball_dy
+                    end
+                    sfx(1)
+                    score+=10
+                    brick_v[i]=false
+                    break
+                end
             end
         end
-    end
 
-    ball_x=nextx
-    ball_y=nexty
+        ball_x=nextx
+        ball_y=nexty
 
-    if (nexty>127) then
-        sfx(2)
-        lives-=1
-        if lives>0 then
-            serveball()
-        else
-            gameover()
+        if (nexty>127) then
+            sfx(2)
+            lives-=1
+            if lives>0 then
+                serveball()
+            else
+                gameover()
+            end
         end
     end
 end
@@ -158,6 +180,7 @@ function startgame()
     mode="game"
     lives=3
     score=0
+    sticky=true
     buildbricks()
     serveball()
 end
@@ -167,10 +190,11 @@ function gameover()
 end
 
 function serveball()
-    ball_x=10
+    ball_x=pad_x+flr(pad_w/2)
+    ball_y=pad_y-ball_r-1
     ball_dx=1
-    ball_y=70
-    ball_dy=1
+    ball_dy=-1
+    sticky=true
 end
 
 function buildbricks()
@@ -212,6 +236,10 @@ end
 function draw_game()
     cls(dark_blue)
     circfill(ball_x,ball_y,ball_r,10)
+    if sticky then
+        --serve direction preview
+        line(ball_x+ball_dx*4, ball_y+ball_dy*4, ball_x+ball_dx*6, ball_y+ball_dy*6, 10)   
+    end
     
     --draw bricks
     for i=1,#brick_x do
