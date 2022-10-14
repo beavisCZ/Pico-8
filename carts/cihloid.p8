@@ -4,10 +4,10 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 13
+-- finished tutorial 14
 -- todo:
 -- 1. sticky paddle DONE
--- 2. angle control
+-- 2. angle control DONE
 -- 3. combos
 -- 4. levels
 -- 5. different bricks
@@ -26,34 +26,16 @@ function _init()
     black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,orange,yellow,green,blue,indigo,pink,peach=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
   
     mode="start"
-
-    ball_x=10
-    ball_dx=1
-    ball_y=90
-    ball_dy=1
-    ball_r=2
-    
-    pad_x=52
-    pad_dx=0
-    pad_y=120
-    pad_w=24
-    pad_h=3
-    pad_c=white
-    
-    brick_x={}
-    brick_y={}
-    brick_v={}
-    brick_w=10
-    brick_h=4
-
-    lives=3
-    score=0
-
 end
 
 function _update60()
     if (mode=="game") then
         update_game()       
+--        slowmo=slowmo+1
+--        if slowmo==10 then 
+--            update_game()       
+--            slowmo=0
+--        end
     elseif (mode=="start") then
         update_start()
     elseif (mode=="gameover") then
@@ -125,7 +107,9 @@ function update_game()
         end
         --check if ball hits pad
         if (ball_box(nextx, nexty, pad_x, pad_y, pad_w, pad_h)) then
+            --deal with collision
             if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, pad_x, pad_y, pad_w, pad_h)) then
+                --hit from side
                 ball_dx=-ball_dx
                 if ball_x<pad_x+pad_w/2 then
                     nextx=pad_x-ball_r
@@ -133,11 +117,29 @@ function update_game()
                     nextx=pad_x+pad_w+ball_r
                 end
             else
+                --hit from top or bottom
                 ball_dy=-ball_dy
                 if ball_y>pad_y then
+                    --bottom
                     nexty=pad_y+pad_h+ball_r
                 else
+                    --top
                     nexty=pad_y-ball_r
+                    --if pad is moving fast enough then change angle
+                    if abs(pad_dx)>2 then
+                        if sign(pad_dx)==sign(ball_dx) then
+                            --flatten angle
+                            setangle(mid(0,ball_ang-1,2))                                
+                        else
+                            --raise angle
+                            if ball_ang==2 then
+                                --flip dir
+                                ball_dx=-ball_dx
+                            else                                
+                                setangle(mid(0,ball_ang+1,2))                                
+                            end
+                        end
+                    end
                 end
             end
             sfx(1)
@@ -177,12 +179,31 @@ function update_game()
 end
 
 function startgame()
+    --ball radius
+    ball_r=2
+
+
+    pad_x=52
+    pad_dx=0
+    pad_y=120
+    pad_w=24
+    pad_h=3
+    pad_c=white
+    
+    brick_x={}
+    brick_y={}
+    brick_v={}
+    brick_w=10
+    brick_h=4
+
     mode="game"
     lives=3
     score=0
     sticky=true
     buildbricks()
     serveball()
+
+    slowmo=0
 end
 
 function gameover()
@@ -195,6 +216,32 @@ function serveball()
     ball_dx=1
     ball_dy=-1
     sticky=true
+    --ball angles 0=flat angle (67 degree), 1=45 degree,  2=sharp angle (22 degree)
+    ball_ang=1
+end
+
+function setangle(ang)
+    ball_ang=ang
+    if ang==2 then
+        ball_dx=0.5*sign(ball_dx)
+        ball_dy=1.3*sign(ball_dy)
+    elseif ang==0 then
+        ball_dx=1.3*sign(ball_dx)
+        ball_dy=0.5*sign(ball_dy)
+    else
+        ball_dx=1*sign(ball_dx)
+        ball_dy=1*sign(ball_dy)
+    end
+end
+
+function sign(n)
+    if n<0 then
+        return -1
+    elseif n>0 then
+        return 1
+    else 
+        return 0
+    end
 end
 
 function buildbricks()
