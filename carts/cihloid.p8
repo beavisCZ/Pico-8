@@ -291,7 +291,7 @@ function draw_game()
     --draw bricks
     for i=1,#brick_x do
         if (brick_v[i]) then
-            rectfill(brick_x[i], brick_y[i], brick_x[i]+brick_w, brick_y[i]+brick_h, orange)
+            rectfill(brick_x[i], brick_y[i], brick_x[i]+brick_w, brick_y[i]+brick_h, pink)
         end      
     end
 
