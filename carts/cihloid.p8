@@ -4,12 +4,14 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 14
+-- finished tutorial 16
 -- todo:
 -- 1. sticky paddle DONE
 -- 2. angle control DONE
--- 3. combos
+-- 3. combos DONE
 -- 4. levels
+    --patters DONE
+    --cleanup
 -- 5. different bricks
 -- 6. powerups
 -- 7. juiciness 
@@ -26,6 +28,7 @@ function _init()
     black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,orange,yellow,green,blue,indigo,pink,peach=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
   
     mode="start"
+    debug=""
 end
 
 function _update60()
@@ -202,7 +205,8 @@ function startgame()
     lives=3
     score=0
     sticky=true
-    buildbricks()
+    level="b9-b9-b2x3b2-bbx5bb-b2x3b2-b9-b9"
+    buildbricks(level)
     serveball()
 
     slowmo=0
@@ -247,16 +251,39 @@ function sign(n)
     end
 end
 
-function buildbricks()
-    local i
+function buildbricks(lvl)
+    local i, j, x, y, chr, last
     brick_x={}
     brick_y={}
     brick_v={}
-    for j=1, 6 do
-        for i=1, 10 do
-            add(brick_x, 5+(i-1)*(brick_w+2)) 
-            add(brick_y, 20+(j-1)*(brick_h+2)) 
-            add(brick_v, true) 
+    
+    x=0
+    y=1
+    for i=1, #lvl do
+        x+=1
+        chr=sub(lvl,i,i)
+        if chr=="b" then
+            last="b"
+            add(brick_x, 5+(x-1)*(brick_w+2))
+            add(brick_y, 20+(y-1)*(brick_h+2))
+            add(brick_v, true)
+        elseif chr=="-" then
+            x=0
+            y+=1
+        elseif chr>="1" and chr<="9" then
+            for j=1, chr+0 do
+                if last=="b" then
+                    add(brick_x, 5+(x-1)*(brick_w+2))
+                    add(brick_y, 20+(y-1)*(brick_h+2))
+                    add(brick_v, true)                
+                elseif last=="x" then
+                end
+                if j<chr+0 then
+                    x+=1
+                end
+            end
+        elseif chr=="x" then
+            last="x"
         end
     end
 end
@@ -301,9 +328,13 @@ function draw_game()
     rectfill(pad_x,pad_y,pad_x+pad_w,pad_y+pad_h,pad_c)
     
     rectfill(0,0,128,6,black)
-    print("lives:"..lives,1,1,white)
-    print("score:"..score,90,1,white)
-    print("c:"..combo,45,1,red)
+    if debug!="" then
+        print(debug,1,1,white)
+    else
+        print("lives:"..lives,1,1,white)
+        print("score:"..score,80,1,white)
+        print("c:"..combo,45,1,red)
+    end
 end
 
 --check collision between ball and any zone
@@ -345,6 +376,8 @@ function deflx_ball_box(bx, by, bdx, bdy, tx, ty, tw, th)
 end
 
 
+-->8
+--test
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
