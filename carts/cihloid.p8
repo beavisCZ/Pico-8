@@ -4,14 +4,15 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 16
+-- finished tutorial 17
 -- todo:
 -- 1. sticky paddle DONE
 -- 2. angle control DONE
 -- 3. combos DONE
 -- 4. levels
     --patters DONE
-    --cleanup
+    --level finish detection DONE
+    --load next level DONE
 -- 5. different bricks
 -- 6. powerups
 -- 7. juiciness 
@@ -43,6 +44,8 @@ function _update60()
         update_start()
     elseif (mode=="gameover") then
         update_gameover()
+    elseif (mode=="levelover") then
+        update_levelover()
     end
 end
 
@@ -55,6 +58,12 @@ end
 function update_gameover()
     if (btn(fire2)) then
         startgame()
+    end
+end
+
+function update_levelover()
+    if (btn(fire2)) then
+        nextlevel()
     end
 end
 
@@ -180,6 +189,10 @@ function update_game()
                 gameover()
             end
         end
+
+        if levelfinished() then 
+            levelover()
+        end
     end
 end
 
@@ -205,15 +218,44 @@ function startgame()
     lives=3
     score=0
     sticky=true
-    level="b9-b9-b2x3b2-bbx5bb-b2x3b2-b9-b9"
-    buildbricks(level)
+    levelnum=1
+    levels={}
+    levels[1]="bhisppsihb"
+    levels[2]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
+    buildbricks(levels[levelnum])
     serveball()
 
     slowmo=0
+
+end
+
+function nextlevel()
+    pad_x=52
+    pad_dx=0
+    pad_y=120
+
+    brick_x={}
+    brick_y={}
+    brick_v={}
+
+    mode="game"
+    sticky=true
+    levelnum+=1
+    if levelnum > #levels then
+        --we won game
+    else
+        buildbricks(levels[levelnum])
+        serveball()
+    end
 end
 
 function gameover()
     mode="gameover"
+end
+
+function levelover()
+    draw_game()
+    mode="levelover" 
 end
 
 function serveball()
@@ -256,26 +298,32 @@ function buildbricks(lvl)
     brick_x={}
     brick_y={}
     brick_v={}
-    
+    brick_t={}
     x=0
     y=1
+--b normal brick, x empty space, / line breaker, i indestrictuble brick, h hardened brick, s exploding brick, p power up brick 
+
     for i=1, #lvl do
         x+=1
         chr=sub(lvl,i,i)
-        if chr=="b" then
-            last="b"
-            add(brick_x, 5+(x-1)*(brick_w+2))
-            add(brick_y, 20+(y-1)*(brick_h+2))
-            add(brick_v, true)
-        elseif chr=="-" then
+        if chr=="b" or chr=="i" or chr=="h" or chr=="s" or chr=="p" then
+            last=chr
+            addbrick(x,y,chr)
+        elseif chr=="/" then
             x=0
             y+=1
         elseif chr>="1" and chr<="9" then
             for j=1, chr+0 do
                 if last=="b" then
-                    add(brick_x, 5+(x-1)*(brick_w+2))
-                    add(brick_y, 20+(y-1)*(brick_h+2))
-                    add(brick_v, true)                
+                    addbrick(x,y,"b")
+                elseif last=="i" then
+                    addbrick(x,y,"i")
+                elseif last=="h" then
+                    addbrick(x,y,"h")
+                elseif last=="s" then
+                    addbrick(x,y,"s")
+                elseif last=="p" then
+                    addbrick(x,y,"p")
                 elseif last=="x" then
                 end
                 if j<chr+0 then
@@ -288,6 +336,23 @@ function buildbricks(lvl)
     end
 end
 
+function addbrick(_x,_y,_t)
+    add(brick_x, 5+(_x-1)*(brick_w+2))
+    add(brick_y, 20+(_y-1)*(brick_h+2))
+    add(brick_v, true)
+    add(brick_t, _t)
+end
+
+function levelfinished()
+    if #brick_v==0 then return true end
+    for i=1, #brick_v do
+        if brick_v[i]==true then
+            return false
+        end
+    end
+    return true
+end
+
 function _draw()
     if (mode=="game") then
         draw_game()       
@@ -295,6 +360,8 @@ function _draw()
         draw_start()
     elseif (mode=="gameover") then
         draw_gameover()
+    elseif (mode=="levelover") then
+        draw_levelover()
     end
 end
 
@@ -310,6 +377,12 @@ function draw_gameover()
     print("press ❎ to start ",30,60, red)
 end
 
+function draw_levelover()
+    rectfill(0,60,128,75,0)
+    print("stage clear!",45,62,white)
+    print("press ❎ to continue ",27,69, light_gray)
+end
+
 function draw_game()
     cls(dark_blue)
     circfill(ball_x,ball_y,ball_r,10)
@@ -321,7 +394,19 @@ function draw_game()
     --draw bricks
     for i=1,#brick_x do
         if (brick_v[i]) then
-            rectfill(brick_x[i], brick_y[i], brick_x[i]+brick_w, brick_y[i]+brick_h, pink)
+            if brick_t[i] == "b" then
+                brickcol=pink
+            elseif brick_t[i] == "i" then
+                brickcol=dark_gray
+            elseif brick_t[i] == "h" then
+                brickcol=light_gray
+            elseif brick_t[i] == "s" then
+                brickcol=red
+            elseif brick_t[i] == "p" then
+                brickcol=blue
+            end
+            rectfill(brick_x[i], brick_y[i], brick_x[i]+brick_w, brick_y[i]+brick_h, brickcol)
+            --spr(1,brick_x[i], brick_y[i])
         end      
     end
 
@@ -381,10 +466,10 @@ end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700ffffffffaaaaaaaaaaaaaaaa666666666666666600000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000feeeeeedabbbbbb3a9999998644444456cccccc100000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000feeeeeedabbbbbb3a9999998644444456cccccc100000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700dddddddd3333333388888888555555551111111100000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 0001000016330163301632016320163101631020300203001f3001a000170001700018400174001640016400164001b40023400264002c4002d4001f0001f0002100021000220002300036000320002c00029000
 000100002233022330223202232022310223100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
