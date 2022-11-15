@@ -4,7 +4,7 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 17
+-- finished tutorial 18
 -- todo:
 -- 1. sticky paddle DONE
 -- 2. angle control DONE
