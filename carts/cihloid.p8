@@ -4,7 +4,7 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 18
+-- finished tutorial 19
 -- todo:
 -- 1. sticky paddle DONE
 -- 2. angle control DONE
@@ -13,7 +13,7 @@ __lua__
     --patters DONE
     --level finish detection DONE
     --load next level DONE
--- 5. different bricks
+-- 5. different bricks DONE
 -- 6. powerups
 -- 7. juiciness 
     --arrow animation 
@@ -34,12 +34,12 @@ end
 
 function _update60()
     if (mode=="game") then
-        update_game()       
---        slowmo=slowmo+1
---        if slowmo==10 then 
---            update_game()       
---            slowmo=0
---        end
+        update_game()   
+    --        slowmo=slowmo+1
+    --        if slowmo==10 then 
+    --            update_game()       
+    --            slowmo=0
+    --        end
     elseif (mode=="start") then
         update_start()
     elseif (mode=="gameover") then
@@ -67,7 +67,7 @@ function update_levelover()
     end
 end
 
-function update_game()
+function update_game()  
     local buttpress=false
     local nextx, nexty
 
@@ -168,10 +168,10 @@ function update_game()
                     else
                         ball_dy=-ball_dy
                     end
-                    sfx(3+combo)
-                    score+=10+(combo*10)
-                    combo=mid(0,combo+1,6)
-                    brick_v[i]=false
+                    hitbrick(i)
+                    if levelfinished() then 
+                        levelover()
+                    end           
                     break
                 end
             end
@@ -179,6 +179,13 @@ function update_game()
 
         ball_x=nextx
         ball_y=nexty
+
+        explosioncheckt+=1
+        if explosioncheckt>5 then
+            checkexplosions()
+            explosioncheckt=0
+        end
+
 
         if (nexty>127) then
             sfx(2)
@@ -189,9 +196,56 @@ function update_game()
                 gameover()
             end
         end
+    end
+end
 
-        if levelfinished() then 
-            levelover()
+function hitbrick(_i)
+    if (brick_t[_i]=="b") then
+        sfx(3+combo)
+        score+=10+(combo*10)
+        combo=mid(0,combo+1,6)
+        brick_v[_i]=false
+    elseif (brick_t[_i]=="i") then
+        sfx(10)
+    elseif (brick_t[_i]=="h") then
+        sfx(10)
+        score+=10+(combo*10)
+        combo=mid(0,combo+1,6)
+        brick_t[_i]="b"
+    elseif (brick_t[_i]=="p") then
+        sfx(3+combo)
+        score+=10+(combo*10)
+        combo=mid(0,combo+1,6)
+        brick_v[_i]=false
+        --TODO trigger power up
+    elseif (brick_t[_i]=="s") then
+        sfx(3+combo)
+        score+=10+(combo*10)
+        combo=mid(0,combo+1,6)
+        brick_t[_i]="zz"
+    end
+end
+
+function checkexplosions()
+    for i=1, #brick_t do
+        if brick_t[i]=="z" and brick_v[i] then
+            explodebrick(i)
+        end
+    end
+    for i=1, #brick_t do
+        if brick_t[i]=="zz" and brick_v[i] then
+            brick_t[i]="z"
+        end
+    end
+end
+
+function explodebrick(_i)  
+    brick_v[_i]=false    
+    for i=1, #brick_x do
+        if i!=_i and brick_v[i]==true 
+        and abs(brick_x[i]-brick_x[_i])<=brick_w+2
+        and abs(brick_y[i]-brick_y[_i])<=brick_h+2 then
+            hitbrick(i)
         end
     end
 end
@@ -220,12 +274,13 @@ function startgame()
     sticky=true
     levelnum=1
     levels={}
-    levels[1]="bhisppsihb"
+    levels[1]="i9/b2ihhib2/b2ihhib2/b2ihhib2/b3hhb3/s9"
     levels[2]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
     buildbricks(levels[levelnum])
     serveball()
 
     slowmo=0
+    explosioncheckt=0
 
 end
 
@@ -301,7 +356,7 @@ function buildbricks(lvl)
     brick_t={}
     x=0
     y=1
---b normal brick, x empty space, / line breaker, i indestrictuble brick, h hardened brick, s exploding brick, p power up brick 
+  --b normal brick, x empty space, / line breaker, i indestrictuble brick, h hardened brick, s exploding brick, p power up brick 
 
     for i=1, #lvl do
         x+=1
@@ -346,7 +401,7 @@ end
 function levelfinished()
     if #brick_v==0 then return true end
     for i=1, #brick_v do
-        if brick_v[i]==true then
+        if brick_v[i]==true and brick_t[i]!="i" then
             return false
         end
     end
@@ -401,7 +456,11 @@ function draw_game()
             elseif brick_t[i] == "h" then
                 brickcol=light_gray
             elseif brick_t[i] == "s" then
+                brickcol=yellow
+            elseif brick_t[i] == "z" then
                 brickcol=red
+            elseif brick_t[i] == "zz" then
+                brickcol=orange
             elseif brick_t[i] == "p" then
                 brickcol=blue
             end
@@ -474,10 +533,11 @@ __sfx__
 0001000016330163301632016320163101631020300203001f3001a000170001700018400174001640016400164001b40023400264002c4002d4001f0001f0002100021000220002300036000320002c00029000
 000100002233022330223202232022310223100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00030000283502835028350253501e350143301433017350193500f3400c340000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-010100002175023750237403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100002175023750237403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 010100002375024750247403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-010100002475026750267403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100002475026750267403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 010100002675028750287403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 010100002875029750297403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-01010000297502b7502b7403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00010000297502b7502b7403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000100002b7502d7502d7403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000200002b0502a050013000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
