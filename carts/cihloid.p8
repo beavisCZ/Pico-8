@@ -4,7 +4,7 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 19
+-- finished tutorial 20
 -- todo:
 -- 1. sticky paddle DONE
 -- 2. angle control DONE
@@ -168,10 +168,7 @@ function update_game()
                     else
                         ball_dy=-ball_dy
                     end
-                    hitbrick(i)
-                    if levelfinished() then 
-                        levelover()
-                    end           
+                    hitbrick(i, true)
                     break
                 end
             end
@@ -186,6 +183,9 @@ function update_game()
             explosioncheckt=0
         end
 
+        if levelfinished() then 
+            levelover()
+        end           
 
         if (nexty>127) then
             sfx(2)
@@ -199,29 +199,29 @@ function update_game()
     end
 end
 
-function hitbrick(_i)
+function hitbrick(_i, _combo)
     if (brick_t[_i]=="b") then
         sfx(3+combo)
         score+=10+(combo*10)
-        combo=mid(0,combo+1,6)
+        if _combo then combo=mid(0,combo+1,6) end
         brick_v[_i]=false
     elseif (brick_t[_i]=="i") then
         sfx(10)
     elseif (brick_t[_i]=="h") then
         sfx(10)
         score+=10+(combo*10)
-        combo=mid(0,combo+1,6)
+        if _combo then combo=mid(0,combo+1,6) end
         brick_t[_i]="b"
     elseif (brick_t[_i]=="p") then
         sfx(3+combo)
         score+=10+(combo*10)
-        combo=mid(0,combo+1,6)
+        if _combo then combo=mid(0,combo+1,6) end
         brick_v[_i]=false
         --TODO trigger power up
     elseif (brick_t[_i]=="s") then
         sfx(3+combo)
         score+=10+(combo*10)
-        combo=mid(0,combo+1,6)
+        if _combo then combo=mid(0,combo+1,6) end
         brick_t[_i]="zz"
     end
 end
@@ -245,7 +245,7 @@ function explodebrick(_i)
         if i!=_i and brick_v[i]==true 
         and abs(brick_x[i]-brick_x[_i])<=brick_w+2
         and abs(brick_y[i]-brick_y[_i])<=brick_h+2 then
-            hitbrick(i)
+            hitbrick(i, false)
         end
     end
 end
