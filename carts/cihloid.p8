@@ -8,8 +8,6 @@ __lua__
 -- todo:
 
 -- 6. powerups
---  speed down
---  megaball
 --  multiball
 
 -- 7. juiciness 
@@ -83,10 +81,18 @@ function update_game()
 
     --speed down powerup
     if powerup==1 then
-        ball_speed=0.7
+        ball_speed=0.5
     else
         ball_speed=1
     end
+
+    --megaball
+    if powerup==6 then
+        ball_c=8
+    else
+        ball_c=10
+    end
+
 
     if (btn(left)) then
         buttpress=true
@@ -188,10 +194,12 @@ function update_game()
         for i=1,#brick_x do
             if (brick_v[i]) then
                 if (ball_box(nextx, nexty, brick_x[i], brick_y[i], brick_w, brick_h)) then
-                    if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick_x[i], brick_y[i], brick_w, brick_h)) then
-                        ball_dx=-ball_dx
-                    else
-                        ball_dy=-ball_dy
+                    if (powerup!=6) or (powerup==6 and brick_t[i]=="i")  then
+                        if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick_x[i], brick_y[i], brick_w, brick_h)) then
+                            ball_dx=-ball_dx
+                        else
+                            ball_dy=-ball_dy
+                        end
                     end
                     hitbrick(i, true)
                     break
@@ -254,22 +262,23 @@ function powerupget(_p)
 
     if _p==1 then 
         --slowdown
-        powerup_t=600
+        powerup_t=900
     elseif _p==2 then
         --life
         lives+=1
         powerup=0
     elseif _p==3 then
         --catch
-        powerup_t=600
+        powerup_t=900
     elseif _p==4 then
         --expand
-        powerup_t=600
+        powerup_t=900
     elseif _p==5 then
         --reduce
-        powerup_t=600
+        powerup_t=900
     elseif _p==6 then
         --megaball
+        powerup_t=900
     elseif _p==7 then
         --multiball
     end
@@ -287,7 +296,11 @@ function hitbrick(_i, _combo)
         sfx(10)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
-        brick_t[_i]="b"
+        if powerup!=6 then
+            brick_t[_i]="b"
+        else
+            brick_v[_i]=false
+        end
     elseif (brick_t[_i]=="p") then
         sfx(3+combo)
         score+=10+(combo*10)
@@ -306,7 +319,7 @@ end
 function spawnpill(_x,_y)
     local _t
     _t=flr(rnd(7))+1
-    _t=1
+    _t=6
     add(pills_x,_x)
     add(pills_y,_y)
     add(pills_t,_t)
@@ -340,7 +353,7 @@ end
 function startgame()
     --ball radius
     ball_r=2
-
+    ball_c=10
 
     pad_x=52
     pad_dx=0
@@ -364,8 +377,8 @@ function startgame()
     levelnum=1
     
     levels={}
-    levels[1]="x/b9/x/p9/p9"
-    levels[2]="i9/b2ihhib2/b2ihhib2/b2ihhib2/b3hhb3/s9"
+    levels[1]="x/i9/h9/x/b9/x/p9/p9"
+    levels[2]="i9/b2ihhib2/bsbihhibsb/bpbihhibpb/b3hhb3/s9"
     levels[3]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
     resetpills()
     buildbricks(levels[levelnum])
@@ -549,7 +562,7 @@ end
 
 function draw_game()
     cls(dark_blue)
-    circfill(ball_x,ball_y,ball_r,10)
+    circfill(ball_x,ball_y,ball_r,ball_c)
     if sticky then
         --serve direction preview
         line(ball_x+ball_dx*4, ball_y+ball_dy*4, ball_x+ball_dx*6, ball_y+ball_dy*6, 10)   
