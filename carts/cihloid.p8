@@ -4,15 +4,11 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 20
+-- finished tutorial 24
 -- todo:
 
 -- 6. powerups
---  pills
 --  speed down
---  1up
---  sticky
---  expand/reduct
 --  megaball
 --  multiball
 
@@ -23,6 +19,9 @@ __lua__
     --screen shakes
 
 -- 8. high score
+-- 9. better collision detection
+-- 10. gameplay tweaks 
+    --smaller paddle
 
 
 function _init()
@@ -73,6 +72,22 @@ function update_game()
     local buttpress=false
     local nextx, nexty
 
+    --expand pad powerup
+    if powerup==4 then
+        pad_w=flr(pad_wo*1.5)
+    elseif powerup==5 then --shorten pad powerup
+        pad_w=flr(pad_wo*0.5)
+    else
+        pad_w=pad_wo
+    end
+
+    --speed down powerup
+    if powerup==1 then
+        ball_speed=0.7
+    else
+        ball_speed=1
+    end
+
     if (btn(left)) then
         buttpress=true
         pad_dx=-2.5
@@ -95,6 +110,7 @@ function update_game()
     if btnp(fire2) then
         if sticky then
             sticky=false
+            ball_x=mid(3,ball_x,124)
         end
     end
 
@@ -102,11 +118,11 @@ function update_game()
     pad_x=mid(0,pad_x,127-pad_w)    
     
     if sticky then 
-        ball_x=pad_x+flr(pad_w/2)
+        ball_x=pad_x+sticky_dx
         ball_y=pad_y-ball_r-1
     else
-        nextx=ball_x+ball_dx
-        nexty=ball_y+ball_dy
+        nextx=ball_x+ball_dx*ball_speed
+        nexty=ball_y+ball_dy*ball_speed
 
         --ball bouncing
         if nextx<2 or nextx>125 then
@@ -159,6 +175,13 @@ function update_game()
             sfx(1)
             --score+=1
             combo=0
+            
+            --catch powerup
+            if powerup==3 and ball_dy<0 then
+                sticky_dx=ball_x-pad_x
+                sticky=true
+            end
+    
         end
 
         --check if ball hits brick
@@ -176,18 +199,9 @@ function update_game()
             end
         end
 
+        --move ball
         ball_x=nextx
         ball_y=nexty
-
-        explosioncheckt+=1
-        if explosioncheckt>5 then
-            checkexplosions()
-            explosioncheckt=0
-        end
-
-        if levelfinished() then 
-            levelover()
-        end           
 
         if (nexty>127) then
             sfx(2)
@@ -197,7 +211,67 @@ function update_game()
             else
                 gameover()
             end
+        end   
+    end
+
+    --move pills
+    for i=1, #pills_x do
+        if pills_v[i] then
+            pills_y[i]+=0.5
+            if pills_y[i] > 128 then
+                pills_v[i]=false
+            end
+            if box_box(pad_x, pad_y, pad_w, pad_h, pills_x[i], pills_y[i], 8, 6) then
+                powerupget(pills_t[i])
+                pills_v[i]=false
+                sfx(11)
+            end
         end
+    end
+
+    explosioncheckt+=1
+    if explosioncheckt>5 then
+        checkexplosions()
+        explosioncheckt=0
+    end
+
+    if levelfinished() then 
+        levelover()
+    end           
+
+    if powerup!=0 then
+        powerup_t-=1
+        --debug=powerup_t
+        if powerup_t<=0 then
+            powerup=0
+        end
+    end
+end
+
+function powerupget(_p)
+    powerup=_p
+    powerup_t=0
+
+    if _p==1 then 
+        --slowdown
+        powerup_t=600
+    elseif _p==2 then
+        --life
+        lives+=1
+        powerup=0
+    elseif _p==3 then
+        --catch
+        powerup_t=600
+    elseif _p==4 then
+        --expand
+        powerup_t=600
+    elseif _p==5 then
+        --reduce
+        powerup_t=600
+    elseif _p==6 then
+        --megaball
+    elseif _p==7 then
+        --multiball
     end
 end
 
@@ -220,12 +294,23 @@ function hitbrick(_i, _combo)
         if _combo then combo=mid(0,combo+1,6) end
         brick_v[_i]=false
         --TODO trigger power up
+        spawnpill(brick_x[_i]+1, brick_y[_i])
     elseif (brick_t[_i]=="s") then
         sfx(3+combo)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
         brick_t[_i]="zz"
     end
+end
+
+function spawnpill(_x,_y)
+    local _t
+    _t=flr(rnd(7))+1
+    _t=1
+    add(pills_x,_x)
+    add(pills_y,_y)
+    add(pills_t,_t)
+    add(pills_v,true)
 end
 
 function checkexplosions()
@@ -261,6 +346,7 @@ function startgame()
     pad_dx=0
     pad_y=120
     pad_w=24
+    pad_wo=24 --original pad width
     pad_h=3
     pad_c=white
     
@@ -274,10 +360,14 @@ function startgame()
     lives=3
     score=0
     sticky=true
+    sticky_dx=flr(pad_w/2)
     levelnum=1
+    
     levels={}
-    levels[1]="i9/b2ihhib2/b2ihhib2/b2ihhib2/b3hhb3/s9"
-    levels[2]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
+    levels[1]="x/b9/x/p9/p9"
+    levels[2]="i9/b2ihhib2/b2ihhib2/b2ihhib2/b3hhb3/s9"
+    levels[3]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
+    resetpills()
     buildbricks(levels[levelnum])
     serveball()
 
@@ -297,10 +387,13 @@ function nextlevel()
 
     mode="game"
     sticky=true
+    sticky_dx=flr(pad_w/2)
+
     levelnum+=1
     if levelnum > #levels then
         --we won game
     else
+        resetpills()
         buildbricks(levels[levelnum])
         serveball()
     end
@@ -318,10 +411,16 @@ end
 function serveball()
     ball_x=pad_x+flr(pad_w/2)
     ball_y=pad_y-ball_r-1
+    ball_speed=1
     ball_dx=1
     ball_dy=-1
     sticky=true
+    sticky_dx=flr(pad_w/2)
+
+    resetpills()
     combo=0
+    powerup=0
+    powerup_t=0
     --ball angles 0=flat angle (67 degree), 1=45 degree,  2=sharp angle (22 degree)
     ball_ang=1
 end
@@ -356,6 +455,7 @@ function buildbricks(lvl)
     brick_y={}
     brick_v={}
     brick_t={}
+
     x=0
     y=1
   --b normal brick, x empty space, / line breaker, i indestrictuble brick, h hardened brick, s exploding brick, p power up brick 
@@ -392,6 +492,13 @@ function buildbricks(lvl)
         end
     end
 end
+
+function resetpills()
+    pills_x={}
+    pills_y={}
+    pills_v={}
+    pills_t={}
+end    
 
 function addbrick(_x,_y,_t)
     add(brick_x, 5+(_x-1)*(brick_w+2))
@@ -471,6 +578,17 @@ function draw_game()
         end      
     end
 
+    for i=1, #pills_x do
+        if pills_v[i] then
+            if pills_t[i]==5 then
+                palt(0,false)
+                palt(15,true)
+            end
+            spr(pills_t[i],pills_x[i], pills_y[i])
+            palt()
+        end
+    end
+
     rectfill(pad_x,pad_y,pad_x+pad_w,pad_y+pad_h,pad_c)
     
     rectfill(0,0,128,6,black)
@@ -479,7 +597,7 @@ function draw_game()
     else
         print("lives:"..lives,1,1,white)
         print("score:"..score,80,1,white)
-        print("c:"..combo,45,1,red)
+        --print("c:"..combo,45,1,red)
     end
 end
 
@@ -491,6 +609,16 @@ function ball_box(bx, by, box_x, box_y, box_w, box_h)
     if (bx+ball_r<box_x) then return false end    
     return true
 end
+
+--check collision between any two zones
+function box_box(bx1, by1, bw1, bh1, bx2, by2, bw2, bh2)
+    if (by1>by2+bh2) then return false end
+    if (by1+bh1<by2) then return false end
+    if (bx1>bx2+bw2) then return false end
+    if (bx1+bw1<bx2) then return false end
+    return true
+end
+
 
 --calculate where to deflect
 --bx-bdy ball positon and speed, tx-th target position and size 
@@ -525,14 +653,14 @@ end
 -->8
 --test
 __gfx__
-00000000077777700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000799944990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700999449990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000999944990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000999449990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700099999900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000006777760067777600677776006777760f677776f06777760067777600000000000000000000000000000000000000000000000000000000000000000
+00000000559949955578777555b33bb555c1c1c55508800555e222e5558888850000000000000000000000000000000000000000000000000000000000000000
+00700700559499955578777555b3bbb555cc1cc55508080555e222e5558a88850000000000000000000000000000000000000000000000000000000000000000
+00077000559949955578777555b3bbb555cc1cc55508800555e2e2e555888a850000000000000000000000000000000000000000000000000000000000000000
+00077000559499955578877555b33bb555c1c1c55508080555e2e2e5558a88850000000000000000000000000000000000000000000000000000000000000000
+00700700059999500577775005bbbb5005cccc50f500005f05eeee50058888500000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000ffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000ffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 ffffffffaaaaaaaaaaaaaaaa66666666666666660000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -544,10 +672,11 @@ __sfx__
 000100002233022330223202232022310223100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00030000283502835028350253501e350143301433017350193500f3400c340000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000100002175023750237403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-010100002375024750247403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100002375024750247403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000100002475026750267403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-010100002675028750287403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-010100002875029750297403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100002675028750287403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100002875029750297403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00010000297502b7502b7403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000100002b7502d7502d7403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000200002b0502a050013000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000200002f750290002400021000210003575028000290002200039750250002c0003200033000310000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
