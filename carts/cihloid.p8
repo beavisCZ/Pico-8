@@ -191,11 +191,11 @@ function update_game()
         end
 
         --check if ball hits brick
-        for i=1,#brick_x do
-            if (brick_v[i]) then
-                if (ball_box(nextx, nexty, brick_x[i], brick_y[i], brick_w, brick_h)) then
-                    if (powerup!=6) or (powerup==6 and brick_t[i]=="i")  then
-                        if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick_x[i], brick_y[i], brick_w, brick_h)) then
+        for i=1,#brick do
+            if brick[i].v then
+                if (ball_box(nextx, nexty, brick[i].x, brick[i].y, brick_w, brick_h)) then
+                    if (powerup!=6) or (powerup==6 and brick[i].t=="i")  then
+                        if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick[i].x, brick[i].y, brick_w, brick_h)) then
                             ball_dx=-ball_dx
                         else
                             ball_dy=-ball_dy
@@ -223,17 +223,17 @@ function update_game()
     end
 
     --move pills
-    for i=1, #pills_x do
-        if pills_v[i] then
-            pills_y[i]+=0.5
-            if pills_y[i] > 128 then
-                pills_v[i]=false
-            end
-            if box_box(pad_x, pad_y, pad_w, pad_h, pills_x[i], pills_y[i], 8, 6) then
-                powerupget(pills_t[i])
-                pills_v[i]=false
-                sfx(11)
-            end
+    for i=1, #pill do
+        --debug=i
+        pill[i].y+=0.5
+        if pill[i].y > 128 then
+            del(pill,pill[i])
+            break --must break from loop, array changed
+        elseif box_box(pad_x, pad_y, pad_w, pad_h, pill[i].x, pill[i].y, 8, 6) then
+            powerupget(pill[i].t)
+            del(pill,pill[i])
+            break --must break from loop, array changed
+            sfx(11)
         end
     end
 
@@ -285,69 +285,72 @@ function powerupget(_p)
 end
 
 function hitbrick(_i, _combo)
-    if (brick_t[_i]=="b") then
+    if (brick[_i].t=="b") then
         sfx(3+combo)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
-        brick_v[_i]=false
-    elseif (brick_t[_i]=="i") then
+        brick[_i].v=false
+    elseif (brick[_i].t=="i") then
         sfx(10)
-    elseif (brick_t[_i]=="h") then
+    elseif (brick[_i].t=="h") then
         sfx(10)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
         if powerup!=6 then
-            brick_t[_i]="b"
+            brick[_i].t="b"
         else
-            brick_v[_i]=false
+            brick[_i].v=false
         end
-    elseif (brick_t[_i]=="p") then
+    elseif (brick[_i].t=="p") then
         sfx(3+combo)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
-        brick_v[_i]=false
         --TODO trigger power up
-        spawnpill(brick_x[_i]+1, brick_y[_i])
-    elseif (brick_t[_i]=="s") then
+        spawnpill(brick[_i].x+1, brick[_i].y)
+        brick[_i].v=false
+    elseif (brick[_i].t=="s") then
         sfx(3+combo)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
-        brick_t[_i]="zz"
+        brick[_i].t="zz"
     end
 end
 
 function spawnpill(_x,_y)
     local _t
+    local _pill
     _t=flr(rnd(7))+1
-    _t=6
-    add(pills_x,_x)
-    add(pills_y,_y)
-    add(pills_t,_t)
-    add(pills_v,true)
+    --_t=7
+    
+    _pill={}
+    _pill.x=_x
+    _pill.y=_y
+    _pill.t=_t
+    add(pill,_pill)
 end
 
 function checkexplosions()
-    for i=1, #brick_t do
-        if brick_t[i]=="z" and brick_v[i] then
+    for i=1, #brick do
+        if brick[i].t=="z" and brick[i].v then
             explodebrick(i)
         end
     end
-    for i=1, #brick_t do
-        if brick_t[i]=="zz" and brick_v[i] then
-            brick_t[i]="z"
+    for i=1, #brick do
+        if brick[i].t=="zz" and brick[i].v then
+            brick[i].t="z"
         end
     end
 end
 
 function explodebrick(_i)  
-    brick_v[_i]=false    
-    for i=1, #brick_x do
-        if i!=_i and brick_v[i]==true 
-        and abs(brick_x[i]-brick_x[_i])<=brick_w+2
-        and abs(brick_y[i]-brick_y[_i])<=brick_h+2 then
+    for i=1, #brick do
+        if i!=_i
+        and abs(brick[i].x-brick[_i].x)<=brick_w+2
+        and abs(brick[i].y-brick[_i].y)<=brick_h+2 then
             hitbrick(i, false)
         end
     end
+    brick[_i].v=false
 end
 
 function startgame()
@@ -363,9 +366,8 @@ function startgame()
     pad_h=3
     pad_c=white
     
-    brick_x={}
-    brick_y={}
-    brick_v={}
+    
+    brick={}
     brick_w=10
     brick_h=4
 
@@ -377,10 +379,11 @@ function startgame()
     levelnum=1
     
     levels={}
-    levels[1]="x/i9/h9/x/b9/x/p9/p9"
+    --levels[1]="x/i9/h9/x/b9/x/p9/p9"
+    levels[1]="x/x/x/x/x/xxxxbbbxxx"
     levels[2]="i9/b2ihhib2/bsbihhibsb/bpbihhibpb/b3hhb3/s9"
     levels[3]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
-    resetpills()
+    pill={}
     buildbricks(levels[levelnum])
     serveball()
 
@@ -394,9 +397,7 @@ function nextlevel()
     pad_dx=0
     pad_y=120
 
-    brick_x={}
-    brick_y={}
-    brick_v={}
+    brick={}
 
     mode="game"
     sticky=true
@@ -406,7 +407,7 @@ function nextlevel()
     if levelnum > #levels then
         --we won game
     else
-        resetpills()
+        pill={}
         buildbricks(levels[levelnum])
         serveball()
     end
@@ -430,7 +431,7 @@ function serveball()
     sticky=true
     sticky_dx=flr(pad_w/2)
 
-    resetpills()
+    pill={}
     combo=0
     powerup=0
     powerup_t=0
@@ -464,11 +465,7 @@ end
 
 function buildbricks(lvl)
     local i, j, x, y, chr, last
-    brick_x={}
-    brick_y={}
-    brick_v={}
-    brick_t={}
-
+    brick={}
     x=0
     y=1
   --b normal brick, x empty space, / line breaker, i indestrictuble brick, h hardened brick, s exploding brick, p power up brick 
@@ -506,24 +503,20 @@ function buildbricks(lvl)
     end
 end
 
-function resetpills()
-    pills_x={}
-    pills_y={}
-    pills_v={}
-    pills_t={}
-end    
-
 function addbrick(_x,_y,_t)
-    add(brick_x, 5+(_x-1)*(brick_w+2))
-    add(brick_y, 20+(_y-1)*(brick_h+2))
-    add(brick_v, true)
-    add(brick_t, _t)
+    local _b
+    _b={}
+    _b.x=5+(_x-1)*(brick_w+2)
+    _b.y=20+(_y-1)*(brick_h+2)
+    _b.t=_t
+    _b.v=true
+    add(brick,_b)
 end
 
 function levelfinished()
-    if #brick_v==0 then return true end
-    for i=1, #brick_v do
-        if brick_v[i]==true and brick_t[i]!="i" then
+    if #brick==0 then return true end
+    for i=1, #brick do
+        if brick[i].t!="i" and brick[i].v  then
             return false
         end
     end
@@ -569,37 +562,34 @@ function draw_game()
     end
     
     --draw bricks
-    for i=1,#brick_x do
-        if (brick_v[i]) then
-            if brick_t[i] == "b" then
+    for i=1,#brick do
+        if brick[i].v then
+            if brick[i].t == "b" then
                 brickcol=pink
-            elseif brick_t[i] == "i" then
+            elseif brick[i].t == "i" then
                 brickcol=dark_gray
-            elseif brick_t[i] == "h" then
+            elseif brick[i].t == "h" then
                 brickcol=light_gray
-            elseif brick_t[i] == "s" then
+            elseif brick[i].t == "s" then
                 brickcol=yellow
-            elseif brick_t[i] == "z" then
+            elseif brick[i].t == "z" then
                 brickcol=red
-            elseif brick_t[i] == "zz" then
+            elseif brick[i].t == "zz" then
                 brickcol=orange
-            elseif brick_t[i] == "p" then
+            elseif brick[i].t == "p" then
                 brickcol=blue
             end
-            rectfill(brick_x[i], brick_y[i], brick_x[i]+brick_w, brick_y[i]+brick_h, brickcol)
-            --spr(1,brick_x[i], brick_y[i])
-        end      
+            rectfill(brick[i].x, brick[i].y, brick[i].x+brick_w, brick[i].y+brick_h, brickcol)
+        end
     end
 
-    for i=1, #pills_x do
-        if pills_v[i] then
-            if pills_t[i]==5 then
-                palt(0,false)
-                palt(15,true)
-            end
-            spr(pills_t[i],pills_x[i], pills_y[i])
-            palt()
+    for i=1, #pill do
+        if pill[i].t==5 then
+            palt(0,false)
+            palt(15,true)
         end
+        spr(pill[i].t,pill[i].x, pill[i].y)
+        palt()
     end
 
     rectfill(pad_x,pad_y,pad_x+pad_w,pad_y+pad_h,pad_c)
