@@ -4,7 +4,7 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 24
+-- finished tutorial 27
 -- todo:
 
 -- 6. powerups
@@ -98,14 +98,14 @@ function update_game()
         buttpress=true
         pad_dx=-2.5
         if sticky then
-            ball_dx=-1
+            ball[1].dx=-1
         end
     end
     if (btn(right)) then
         buttpress=true
         pad_dx=2.5
         if sticky then
-            ball_dx=1
+            ball[1].dx=1
         end
     end
     if not (buttpress) then
@@ -123,103 +123,9 @@ function update_game()
     pad_x+=pad_dx
     pad_x=mid(0,pad_x,127-pad_w)    
     
-    if sticky then 
-        ball_x=pad_x+sticky_dx
-        ball_y=pad_y-ball_r-1
-    else
-        nextx=ball_x+ball_dx*ball_speed
-        nexty=ball_y+ball_dy*ball_speed
-
-        --ball bouncing
-        if nextx<2 or nextx>125 then
-            nextx=mid(2,nextx,125)
-            ball_dx=-ball_dx
-            sfx(0)
-        end
-        if nexty<8  then
-            nexty=8
-            ball_dy=-ball_dy
-            sfx(0)
-        end
-        --check if ball hits pad
-        if (ball_box(nextx, nexty, pad_x, pad_y, pad_w, pad_h)) then
-            --deal with collision
-            if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, pad_x, pad_y, pad_w, pad_h)) then
-                --hit from side
-                ball_dx=-ball_dx
-                if ball_x<pad_x+pad_w/2 then
-                    nextx=pad_x-ball_r
-                else
-                    nextx=pad_x+pad_w+ball_r
-                end
-            else
-                --hit from top or bottom
-                ball_dy=-ball_dy
-                if ball_y>pad_y then
-                    --bottom
-                    nexty=pad_y+pad_h+ball_r
-                else
-                    --top
-                    nexty=pad_y-ball_r
-                    --if pad is moving fast enough then change angle
-                    if abs(pad_dx)>2 then
-                        if sign(pad_dx)==sign(ball_dx) then
-                            --flatten angle
-                            setangle(mid(0,ball_ang-1,2))                                
-                        else
-                            --raise angle
-                            if ball_ang==2 then
-                                --flip dir
-                                ball_dx=-ball_dx
-                            else                                
-                                setangle(mid(0,ball_ang+1,2))                                
-                            end
-                        end
-                    end
-                end
-            end
-            sfx(1)
-            --score+=1
-            combo=0
-            
-            --catch powerup
-            if powerup==3 and ball_dy<0 then
-                sticky_dx=ball_x-pad_x
-                sticky=true
-            end
-    
-        end
-
-        --check if ball hits brick
-        for i=1,#brick do
-            if brick[i].v then
-                if (ball_box(nextx, nexty, brick[i].x, brick[i].y, brick_w, brick_h)) then
-                    if (powerup!=6) or (powerup==6 and brick[i].t=="i")  then
-                        if (deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick[i].x, brick[i].y, brick_w, brick_h)) then
-                            ball_dx=-ball_dx
-                        else
-                            ball_dy=-ball_dy
-                        end
-                    end
-                    hitbrick(i, true)
-                    break
-                end
-            end
-        end
-
-        --move ball
-        ball_x=nextx
-        ball_y=nexty
-
-        if (nexty>127) then
-            sfx(2)
-            lives-=1
-            if lives>0 then
-                serveball()
-            else
-                gameover()
-            end
-        end   
+    -- big ball loop
+    for bi=#ball, 1, -1 do
+        update_ball(bi)
     end
 
     --move pills
@@ -253,6 +159,107 @@ function update_game()
         if powerup_t<=0 then
             powerup=0
         end
+    end
+end
+
+function update_ball(bi)
+    if sticky then 
+        ball[1].x=pad_x+sticky_dx
+        ball[1].y=pad_y-ball_r-1
+    else
+        myball=ball[bi]
+        nextx=myball.x+myball.dx*ball_speed
+        nexty=myball.y+myball.dy*ball_speed
+
+        --ball bouncing
+        if nextx<2 or nextx>125 then
+            nextx=mid(2,nextx,125)
+            myball.dx=-myball.dx
+            sfx(0)
+        end
+        if nexty<8  then
+            nexty=8
+            myball.dy=-myball.dy
+            sfx(0)
+        end
+        --check if ball hits pad
+        if (ball_box(nextx, nexty, pad_x, pad_y, pad_w, pad_h)) then
+            --deal with collision
+            if (deflx_ball_box(myball.x, myball.y, myball.dx, myball.dy, pad_x, pad_y, pad_w, pad_h)) then
+                --hit from side
+                myball.dx=-myball.dx
+                if myball.x<pad_x+pad_w/2 then
+                    nextx=pad_x-ball_r
+                else
+                    nextx=pad_x+pad_w+ball_r
+                end
+            else
+                --hit from top or bottom
+                myball.dy=-myball.dy
+                if myball.y>pad_y then
+                    --bottom
+                    nexty=pad_y+pad_h+ball_r
+                else
+                    --top
+                    nexty=pad_y-ball_r
+                    --if pad is moving fast enough then change angle
+                    if abs(pad_dx)>2 then
+                        if sign(pad_dx)==sign(myball.dx) then
+                            --flatten angle
+                            setangle(myball,mid(0,myball.ang-1,2))                                
+                        else
+                            --raise angle
+                            if myball.ang==2 then
+                                --flip dir
+                                myball.dx=-myball.dx
+                            else                                
+                                setangle(myball,mid(0,myball.ang+1,2))                                
+                            end
+                        end
+                    end
+                end
+            end
+            sfx(1)
+            combo=0
+            
+            --catch powerup
+            if powerup==3 and myball.dy<0 then
+                sticky_dx=myball.x-pad_x
+                sticky=true
+            end
+    
+        end
+
+        --check if ball hits brick
+        for i=1,#brick do
+            if brick[i].v then
+                if (ball_box(nextx, nexty, brick[i].x, brick[i].y, brick_w, brick_h)) then
+                    if (powerup!=6) or (powerup==6 and brick[i].t=="i")  then
+                        if (deflx_ball_box(myball.x, myball.y, myball.dx, myball.dy, brick[i].x, brick[i].y, brick_w, brick_h)) then
+                            myball.dx=-myball.dx
+                        else
+                            myball.dy=-myball.dy
+                        end
+                    end
+                    hitbrick(i, true)
+                    break
+                end
+            end
+        end
+
+        --move ball
+        myball.x=nextx
+        myball.y=nexty
+
+        if (nexty>127) then
+            sfx(2)
+            lives-=1
+            if lives>0 then
+                serveball()
+            else
+                gameover()
+            end
+        end   
     end
 end
 
@@ -423,33 +430,47 @@ function levelover()
 end
 
 function serveball()
-    ball_x=pad_x+flr(pad_w/2)
-    ball_y=pad_y-ball_r-1
-    ball_speed=1
-    ball_dx=1
-    ball_dy=-1
+    ball={}
+    ball[1]=newball()
+    
+    ball[1].x=pad_x+flr(pad_w/2)
+    ball[1].y=pad_y-ball_r-1
+    ball[1].dx=1
+    ball[1].dy=-1
+    --ball angles 0=flat angle (67 degree), 1=45 degree,  2=sharp angle (22 degree)
+    ball[1].ang=1
     sticky=true
     sticky_dx=flr(pad_w/2)
+    ball_speed=1
 
     pill={}
     combo=0
     powerup=0
     powerup_t=0
-    --ball angles 0=flat angle (67 degree), 1=45 degree,  2=sharp angle (22 degree)
-    ball_ang=1
 end
 
-function setangle(ang)
-    ball_ang=ang
+function newball()
+    b = {}
+    b.x = 0
+    b.y = 0
+    b.dx = 0
+    b.dy = 0
+    b.ang = 1
+
+    return b
+end
+
+function setangle(bl, ang)
+    bl.ang=ang
     if ang==2 then
-        ball_dx=0.5*sign(ball_dx)
-        ball_dy=1.3*sign(ball_dy)
+        bl.dx=0.5*sign(bl.dx)
+        bl.dy=1.3*sign(bl.dy)
     elseif ang==0 then
-        ball_dx=1.3*sign(ball_dx)
-        ball_dy=0.5*sign(ball_dy)
+        bl.dx=1.3*sign(bl.dx)
+        bl.dy=0.5*sign(bl.dy)
     else
-        ball_dx=1*sign(ball_dx)
-        ball_dy=1*sign(ball_dy)
+        bl.dx=1*sign(bl.dx)
+        bl.dy=1*sign(bl.dy)
     end
 end
 
@@ -555,10 +576,10 @@ end
 
 function draw_game()
     cls(dark_blue)
-    circfill(ball_x,ball_y,ball_r,ball_c)
+    circfill(ball[1].x,ball[1].y,ball_r,ball_c)
     if sticky then
         --serve direction preview
-        line(ball_x+ball_dx*4, ball_y+ball_dy*4, ball_x+ball_dx*6, ball_y+ball_dy*6, 10)   
+        line(ball[1].x+ball[1].dx*4, ball[1].y+ball[1].dy*4, ball[1].x+ball[1].dx*6, ball[1].y+ball[1].dy*6, 10)   
     end
     
     --draw bricks
