@@ -4,7 +4,7 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 27
+-- finished tutorial 29
 -- todo:
 
 -- 6. powerups
@@ -252,12 +252,16 @@ function update_ball(bi)
         myball.y=nexty
 
         if (nexty>127) then
-            sfx(2)
-            lives-=1
-            if lives>0 then
-                serveball()
+            if #ball==1 then 
+                sfx(2)
+                lives-=1
+                if lives>0 then
+                    serveball()
+                else
+                    gameover()
+                end
             else
-                gameover()
+                del(ball, ball[bi])
             end
         end   
     end
@@ -288,6 +292,8 @@ function powerupget(_p)
         powerup_t=900
     elseif _p==7 then
         --multiball
+        multiball()
+        powerup=0
     end
 end
 
@@ -386,9 +392,9 @@ function startgame()
     levelnum=1
     
     levels={}
-    --levels[1]="x/i9/h9/x/b9/x/p9/p9"
-    levels[1]="x/x/x/x/x/xxxxbbbxxx"
-    levels[2]="i9/b2ihhib2/bsbihhibsb/bpbihhibpb/b3hhb3/s9"
+    levels[1]="x/i9/h9/x/b9/x/p9/p9"
+    --levels[1]="x/x/x/x/x/xxxxbbbxxx"
+    levels[2]="i9/b2ibbib2/bsbibbibsb/bpbibbibpb/b3hhb3/s9"
     levels[3]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
     pill={}
     buildbricks(levels[levelnum])
@@ -456,9 +462,19 @@ function newball()
     b.dx = 0
     b.dy = 0
     b.ang = 1
-
     return b
 end
+
+function copyball(originalball)
+    b={}
+    b.x=originalball.x
+    b.y=originalball.y
+    b.dx=originalball.dx
+    b.dy=originalball.dy
+    b.ang=originalball.ang
+    return b
+end
+
 
 function setangle(bl, ang)
     bl.ang=ang
@@ -472,6 +488,23 @@ function setangle(bl, ang)
         bl.dx=1*sign(bl.dx)
         bl.dy=1*sign(bl.dy)
     end
+end
+
+function multiball()
+    ball2 = copyball(ball[1])
+    ball3 = copyball(ball[1])
+    if ball[1].ang==0 then
+        setangle(ball2,1)
+        setangle(ball3,2)
+    elseif ball[1].ang==1 then
+        setangle(ball2,0)
+        setangle(ball3,2)
+    else
+        setangle(ball2,0)
+        setangle(ball3,1)
+    end
+    add(ball, ball2)
+    add(ball, ball3)
 end
 
 function sign(n)
@@ -576,12 +609,14 @@ end
 
 function draw_game()
     cls(dark_blue)
-    circfill(ball[1].x,ball[1].y,ball_r,ball_c)
+    for i=1,#ball do
+        circfill(ball[i].x,ball[i].y,ball_r,ball_c)   
+    end
     if sticky then
         --serve direction preview
         line(ball[1].x+ball[1].dx*4, ball[1].y+ball[1].dy*4, ball[1].x+ball[1].dx*6, ball[1].y+ball[1].dy*6, 10)   
     end
-    
+
     --draw bricks
     for i=1,#brick do
         if brick[i].v then
