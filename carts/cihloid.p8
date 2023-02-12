@@ -4,11 +4,10 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 29
+-- finished tutorial 31
 -- todo:
-
--- 6. powerups
---  multiball
+-- 6. --slow, expand, reduce on timer, megaball timer, multiball release sticky
+      --split random ball
 
 -- 7. juiciness 
     --arrow animation 
@@ -97,16 +96,12 @@ function update_game()
     if (btn(left)) then
         buttpress=true
         pad_dx=-2.5
-        if sticky then
-            ball[1].dx=-1
-        end
+        pointstuck(-1)
     end
     if (btn(right)) then
         buttpress=true
         pad_dx=2.5
-        if sticky then
-            ball[1].dx=1
-        end
+        pointstuck(1)
     end
     if not (buttpress) then
         pad_dx=pad_dx/1.4
@@ -114,10 +109,7 @@ function update_game()
 
     --btnp for not pressed last frame - eliminates button press from start menu
     if btnp(fire2) then
-        if sticky then
-            sticky=false
-            ball_x=mid(3,ball_x,124)
-        end
+        releasestuck()
     end
 
     pad_x+=pad_dx
@@ -163,11 +155,12 @@ function update_game()
 end
 
 function update_ball(bi)
-    if sticky then 
-        ball[1].x=pad_x+sticky_dx
-        ball[1].y=pad_y-ball_r-1
+    myball=ball[bi]
+    if myball.stuck then 
+        myball.x=pad_x+sticky_dx
+        myball.y=pad_y-ball_r-1
     else
-        myball=ball[bi]
+        --regular physics
         nextx=myball.x+myball.dx*ball_speed
         nexty=myball.y+myball.dy*ball_speed
 
@@ -223,10 +216,16 @@ function update_ball(bi)
             combo=0
             
             --catch powerup
-            if powerup==3 and myball.dy<0 then
+            if sticky and myball.dy<0 then
+                releasestuck()
+                sticky=false
+                myball.stuck=true
                 sticky_dx=myball.x-pad_x
-                sticky=true
             end
+--            if powerup==3 and myball.dy<0 then
+--                sticky_dx=myball.x-pad_x
+ --               sticky=true
+ --           end
     
         end
 
@@ -267,6 +266,23 @@ function update_ball(bi)
     end
 end
 
+function releasestuck()
+    for i=1, #ball do
+        if ball[i].stuck then
+            ball[i].x=mid(3,ball[i].x,124)
+            ball[i].stuck=false
+        end
+    end
+end
+
+function pointstuck(sign)
+    for i=1, #ball do
+        if ball[i].stuck then
+            ball[i].dx=abs(ball[i].dx)*sign
+        end
+    end
+end
+
 function powerupget(_p)
     powerup=_p
     powerup_t=0
@@ -280,7 +296,15 @@ function powerupget(_p)
         powerup=0
     elseif _p==3 then
         --catch
-        powerup_t=900
+        hasstuck=false
+        for i=1, #ball do
+            if ball[i].stuck then
+                hasstuck=true
+            end
+        end
+        if hasstuck==false then
+            sticky=true
+        end
     elseif _p==4 then
         --expand
         powerup_t=900
@@ -292,6 +316,7 @@ function powerupget(_p)
         powerup_t=900
     elseif _p==7 then
         --multiball
+        releasestuck()
         multiball()
         powerup=0
     end
@@ -333,6 +358,7 @@ function spawnpill(_x,_y)
     local _t
     local _pill
     _t=flr(rnd(7))+1
+    --if _t<3 then _t=3 else _t=7 end
     --_t=7
     
     _pill={}
@@ -387,12 +413,11 @@ function startgame()
     mode="game"
     lives=3
     score=0
-    sticky=true
     sticky_dx=flr(pad_w/2)
     levelnum=1
     
     levels={}
-    levels[1]="x/i9/h9/x/b9/x/p9/p9"
+    levels[1]="x/i9/b9/b9/h9/p9/p9/p9"
     --levels[1]="x/x/x/x/x/xxxxbbbxxx"
     levels[2]="i9/b2ibbib2/bsbibbibsb/bpbibbibpb/b3hhb3/s9"
     levels[3]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
@@ -413,8 +438,9 @@ function nextlevel()
     brick={}
 
     mode="game"
-    sticky=true
+
     sticky_dx=flr(pad_w/2)
+    sticky=false
 
     levelnum+=1
     if levelnum > #levels then
@@ -445,7 +471,8 @@ function serveball()
     ball[1].dy=-1
     --ball angles 0=flat angle (67 degree), 1=45 degree,  2=sharp angle (22 degree)
     ball[1].ang=1
-    sticky=true
+    ball[1].stuck=true
+    sticky=false
     sticky_dx=flr(pad_w/2)
     ball_speed=1
 
@@ -462,6 +489,7 @@ function newball()
     b.dx = 0
     b.dy = 0
     b.ang = 1
+    b.stuck = false
     return b
 end
 
@@ -472,6 +500,7 @@ function copyball(originalball)
     b.dx=originalball.dx
     b.dy=originalball.dy
     b.ang=originalball.ang
+    b.stuck=originalball.stuck
     return b
 end
 
@@ -611,10 +640,9 @@ function draw_game()
     cls(dark_blue)
     for i=1,#ball do
         circfill(ball[i].x,ball[i].y,ball_r,ball_c)   
-    end
-    if sticky then
-        --serve direction preview
-        line(ball[1].x+ball[1].dx*4, ball[1].y+ball[1].dy*4, ball[1].x+ball[1].dx*6, ball[1].y+ball[1].dy*6, 10)   
+        if ball[i].stuck then
+            line(ball[i].x+ball[i].dx*4, ball[i].y+ball[i].dy*4, ball[i].x+ball[i].dx*6, ball[i].y+ball[i].dy*6, 10)          
+        end
     end
 
     --draw bricks
@@ -713,10 +741,10 @@ end
 --test
 __gfx__
 0000000006777760067777600677776006777760f677776f06777760067777600000000000000000000000000000000000000000000000000000000000000000
-00000000559949955578777555b33bb555c1c1c55508800555e222e5558888850000000000000000000000000000000000000000000000000000000000000000
-00700700559499955578777555b3bbb555cc1cc55508080555e222e5558a88850000000000000000000000000000000000000000000000000000000000000000
-00077000559949955578777555b3bbb555cc1cc55508800555e2e2e555888a850000000000000000000000000000000000000000000000000000000000000000
-00077000559499955578877555b33bb555c1c1c55508080555e2e2e5558a88850000000000000000000000000000000000000000000000000000000000000000
+00000000559949955577777555b33bb555ccccc55500000555e222e5558888850000000000000000000000000000000000000000000000000000000000000000
+00700700559499955577877555b3bbb555c1c1c55580008555e222e5558a88850000000000000000000000000000000000000000000000000000000000000000
+00077000559949955578887555b3bbb5551ccc155508080555e2e2e555888a850000000000000000000000000000000000000000000000000000000000000000
+00077000559499955577877555b33bb555c1c1c55580008555e2e2e5558a88850000000000000000000000000000000000000000000000000000000000000000
 00700700059999500577775005bbbb5005cccc50f500005f05eeee50058888500000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000ffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000ffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000
