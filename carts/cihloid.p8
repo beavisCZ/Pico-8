@@ -4,10 +4,8 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 31
+-- finished tutorial 32
 -- todo:
--- 6. --slow, expand, reduce on timer, megaball timer, multiball release sticky
-      --split random ball
 
 -- 7. juiciness 
     --arrow animation 
@@ -69,29 +67,32 @@ function update_game()
     local buttpress=false
     local nextx, nexty
 
-    --expand pad powerup
-    if powerup==4 then
-        pad_w=flr(pad_wo*1.5)
-    elseif powerup==5 then --shorten pad powerup
-        pad_w=flr(pad_wo*0.5)
-    else
-        pad_w=pad_wo
-    end
-
+    --******powerups*******
     --speed down powerup
-    if powerup==1 then
+    if timer_slow>0 then
         ball_speed=0.5
+        timer_slow-=1
     else
         ball_speed=1
     end
 
+    if timer_expand>0 then
+        pad_w=flr(pad_wo*1.5)
+        timer_expand-=1
+    elseif timer_reduce>0 then
+        pad_w=flr(pad_wo*0.5)
+        timer_reduce-=1    
+    else
+        pad_w=pad_wo
+    end
+
     --megaball
-    if powerup==6 then
+    if timer_megaball>0 then
         ball_c=8
+        timer_megaball-=1
     else
         ball_c=10
     end
-
 
     if (btn(left)) then
         buttpress=true
@@ -145,13 +146,6 @@ function update_game()
         levelover()
     end           
 
-    if powerup!=0 then
-        powerup_t-=1
-        --debug=powerup_t
-        if powerup_t<=0 then
-            powerup=0
-        end
-    end
 end
 
 function update_ball(bi)
@@ -233,7 +227,7 @@ function update_ball(bi)
         for i=1,#brick do
             if brick[i].v then
                 if (ball_box(nextx, nexty, brick[i].x, brick[i].y, brick_w, brick_h)) then
-                    if (powerup!=6) or (powerup==6 and brick[i].t=="i")  then
+                    if (timer_megaball<=0) or (timer_megaball>0 and brick[i].t=="i")  then
                         if (deflx_ball_box(myball.x, myball.y, myball.dx, myball.dy, brick[i].x, brick[i].y, brick_w, brick_h)) then
                             myball.dx=-myball.dx
                         else
@@ -284,16 +278,12 @@ function pointstuck(sign)
 end
 
 function powerupget(_p)
-    powerup=_p
-    powerup_t=0
-
     if _p==1 then 
         --slowdown
-        powerup_t=900
+        timer_slow = 900
     elseif _p==2 then
         --life
         lives+=1
-        powerup=0
     elseif _p==3 then
         --catch
         hasstuck=false
@@ -307,18 +297,18 @@ function powerupget(_p)
         end
     elseif _p==4 then
         --expand
-        powerup_t=900
+        timer_expand=900
+        timer_reduce=0
     elseif _p==5 then
         --reduce
-        powerup_t=900
+        timer_expand=0
+        timer_reduce=900
     elseif _p==6 then
         --megaball
-        powerup_t=900
+        timer_megaball=900
     elseif _p==7 then
         --multiball
-        releasestuck()
         multiball()
-        powerup=0
     end
 end
 
@@ -478,8 +468,10 @@ function serveball()
 
     pill={}
     combo=0
-    powerup=0
-    powerup_t=0
+    timer_slow=0
+    timer_reduce=0
+    timer_expand=0
+    timer_megaball=0
 end
 
 function newball()
@@ -520,12 +512,15 @@ function setangle(bl, ang)
 end
 
 function multiball()
-    ball2 = copyball(ball[1])
-    ball3 = copyball(ball[1])
-    if ball[1].ang==0 then
+    local ballnum = flr(rnd(#ball))+1
+    local ball2 = copyball(ball[ballnum])
+    local ball3 = copyball(ball[ballnum])
+    ball2.stuck=false
+    ball3.stuck=false
+    if ball[ballnum].ang==0 then
         setangle(ball2,1)
         setangle(ball3,2)
-    elseif ball[1].ang==1 then
+    elseif ball[ballnum].ang==1 then
         setangle(ball2,0)
         setangle(ball3,2)
     else
