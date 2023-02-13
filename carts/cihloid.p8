@@ -4,17 +4,19 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 33
+-- finished tutorial 34
 -- todo:
 
 -- 7. juiciness 
-    --text blinking
     --arrow animation 
     --particles
 
 -- 8. high score
--- 9. better collision detection
--- 10. gameplay tweaks 
+-- 9. UI
+    -- powerup messages
+    -- powerup percentage bar
+-- 10. better collision detection
+-- 11. gameplay tweaks 
     --smaller paddle
 
 
@@ -25,10 +27,21 @@ function _init()
   
     mode="start"
     debug=""
+
+    --juicyness
     shake=0
+    blinkframe=0
+    blinkspeed=7
+    blinkgreen=green
+    blinkgreen_i=1
+    blinkred=red
+    blinkred_i=1
+
+    startcountdown=-1
 end
 
 function _update60()
+    doblink()
     if (mode=="game") then
         update_game()   
     --        slowmo=slowmo+1
@@ -46,20 +59,53 @@ function _update60()
 end
 
 function update_start()
-    if (btn(fire2)) then
-        startgame()
+    if startcountdown<0 then
+        if (btn(fire2)) then
+            sfx(13)
+            startcountdown=30
+            blinkspeed=1
+        end
+    else
+        startcountdown-=1
+        if startcountdown<1 then
+            startgame()
+            blinkspeed=7
+            startcountdown=-1
+        end
     end
 end
 
 function update_gameover()
-    if (btn(fire2)) then
-        startgame()
+    if startcountdown<0 then
+        if (btn(fire2)) then
+            sfx(13)
+            startcountdown=30
+            blinkspeed=1
+        end
+    else
+        startcountdown-=1
+        if startcountdown<1 then
+            startgame()
+            blinkspeed=7
+            startcountdown=-1
+        end
     end
 end
 
 function update_levelover()
-    if (btn(fire2)) then
-        nextlevel()
+    if startcountdown<0 then
+        if (btn(fire2)) then
+            sfx(13)
+            startcountdown=30
+            blinkspeed=1
+        end
+    else
+        startcountdown-=1
+        if startcountdown<1 then
+            nextlevel()
+            blinkspeed=7
+            startcountdown=-1
+        end
     end
 end
 
@@ -400,7 +446,7 @@ function startgame()
     
     
     brick={}
-    brick_w=10
+    brick_w=9.6
     brick_h=4
 
     mode="game"
@@ -410,9 +456,9 @@ function startgame()
     levelnum=1
     
     levels={}
-    levels[1]="x/i9/b9/bbsbbsbbsb/h9/p9/p9/p9"
+    levels[1]="x/i9i/b9b/bbsbbsbbsbb/h9h/p9p/p9p/p9p"
     --levels[1]="x/x/x/x/x/xxxxbbbxxx"
-    levels[2]="i9/b2ibbib2/bsbibbibsb/bpbibbibpb/b3hhb3/s9"
+    levels[2]="i9i/b2ibbib2b/bsbibbibsbb/bpbibbibpbb/b3hhb3b/s9s"
     levels[3]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
     pill={}
     buildbricks(levels[levelnum])
@@ -446,6 +492,7 @@ function nextlevel()
 end
 
 function gameover()
+    sfx(14)
     mode="gameover"
 end
 
@@ -587,7 +634,7 @@ end
 function addbrick(_x,_y,_t)
     local _b
     _b={}
-    _b.x=5+(_x-1)*(brick_w+2)
+    _b.x=1+(_x-1)*(brick_w+2)
     _b.y=20+(_y-1)*(brick_h+2)
     _b.t=_t
     _b.v=true
@@ -621,19 +668,19 @@ function draw_start()
     cls()
     rectfill(0,0,127,127,orange)
     print("cihloid",50,40,white)
-    print("press ❎ to start ",30,60, red)
+    print("press ❎ to start ",30,60, blinkred)
 end
 
 function draw_gameover()
     cls(orange)
     print("game over",45,40,white)
-    print("press ❎ to start ",30,60, red)
+    print("press ❎ to start ",30,60, blinkred)
 end
 
 function draw_levelover()
     rectfill(0,60,128,75,0)
     print("stage clear!",45,62,white)
-    print("press ❎ to continue ",27,69, light_gray)
+    print("press ❎ to continue ",27,69, blinkred)
 end
 
 function draw_game()
@@ -746,6 +793,21 @@ function doshake()
     if shake<0.05 then shake=0 end
 end
 
+function doblink()
+    local green_seq = {dark_green, green, white, green}
+    local red_seq={dark_purple,red,pink,red}
+    blinkframe+=1
+    if blinkframe>blinkspeed then 
+        blinkframe=0
+        blinkgreen=green_seq[blinkgreen_i]
+        blinkred=red_seq[blinkred_i]
+        blinkgreen_i+=1
+        blinkred_i+=1
+        if blinkgreen_i>#green_seq then blinkgreen_i=1 end
+        if blinkred_i>#red_seq then blinkred_i=1 end
+    end
+end 
+
 -->8
 --test
 __gfx__
@@ -777,3 +839,5 @@ __sfx__
 000200002b0502a050013000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000200002f750290002400021000210003575028000290002200039750250002c0003200033000310000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000800002465019650126500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000a00001c7501d750207501d7501e750000002070021700000000000029700000002a7002f700000003370000000367003470000000000000000036700000000000000000000000000000000000000000000000
+00100000107500f750000000f750000000c750000000b750000000675000000047500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
