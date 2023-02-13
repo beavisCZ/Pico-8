@@ -4,14 +4,13 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 32
+-- finished tutorial 33
 -- todo:
 
 -- 7. juiciness 
-    --arrow animation 
     --text blinking
+    --arrow animation 
     --particles
-    --screen shakes
 
 -- 8. high score
 -- 9. better collision detection
@@ -26,6 +25,7 @@ function _init()
   
     mode="start"
     debug=""
+    shake=0
 end
 
 function _update60()
@@ -245,8 +245,9 @@ function update_ball(bi)
         myball.y=nexty
 
         if (nexty>127) then
+            sfx(2)
             if #ball==1 then 
-                sfx(2)
+                shake+=0.4
                 lives-=1
                 if lives>0 then
                     serveball()
@@ -372,6 +373,8 @@ function checkexplosions()
 end
 
 function explodebrick(_i)  
+    shake+=0.15 
+    sfx(12)
     for i=1, #brick do
         if i!=_i
         and abs(brick[i].x-brick[_i].x)<=brick_w+2
@@ -407,7 +410,7 @@ function startgame()
     levelnum=1
     
     levels={}
-    levels[1]="x/i9/b9/b9/h9/p9/p9/p9"
+    levels[1]="x/i9/b9/bbsbbsbbsb/h9/p9/p9/p9"
     --levels[1]="x/x/x/x/x/xxxxbbbxxx"
     levels[2]="i9/b2ibbib2/bsbibbibsb/bpbibbibpb/b3hhb3/s9"
     levels[3]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
@@ -602,6 +605,7 @@ function levelfinished()
 end
 
 function _draw()
+    doshake()
     if (mode=="game") then
         draw_game()       
     elseif (mode=="start") then
@@ -614,7 +618,8 @@ function _draw()
 end
 
 function draw_start()
-    cls(orange)
+    cls()
+    rectfill(0,0,127,127,orange)
     print("cihloid",50,40,white)
     print("press ❎ to start ",30,60, red)
 end
@@ -632,7 +637,8 @@ function draw_levelover()
 end
 
 function draw_game()
-    cls(dark_blue)
+    cls()
+    rectfill(0,0,127,127,dark_blue) --black border when screen shaking instead of cls
     for i=1,#ball do
         circfill(ball[i].x,ball[i].y,ball_r,ball_c)   
         if ball[i].stuck then
@@ -731,6 +737,14 @@ function deflx_ball_box(bx, by, bdx, bdy, tx, ty, tw, th)
     return false
 end
 
+-------juicy stuff---------
+function doshake()
+    local shakex=(16-rnd(32))*shake
+    local shakey=(16-rnd(32))*shake
+    camera(shakex, shakey)
+    shake=shake*0.95
+    if shake<0.05 then shake=0 end
+end
 
 -->8
 --test
@@ -762,3 +776,4 @@ __sfx__
 000100002b7502d7502d7403030032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000200002b0502a050013000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000200002f750290002400021000210003575028000290002200039750250002c0003200033000310000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000800002465019650126500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
