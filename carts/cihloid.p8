@@ -36,7 +36,8 @@ function _init()
     blinkgreen_i=1
     blinkred=red
     blinkred_i=1
-
+    fadeperc=0
+    fadelength=40
     startcountdown=-1
 end
 
@@ -62,15 +63,18 @@ function update_start()
     if startcountdown<0 then
         if (btn(fire2)) then
             sfx(13)
-            startcountdown=30
+            startcountdown=fadelength
             blinkspeed=1
+            fadeperc=0
         end
     else
         startcountdown-=1
+        fadeperc=(fadelength-startcountdown)/fadelength
         if startcountdown<1 then
             startgame()
             blinkspeed=7
             startcountdown=-1
+            fadeperc=0
         end
     end
 end
@@ -79,15 +83,18 @@ function update_gameover()
     if startcountdown<0 then
         if (btn(fire2)) then
             sfx(13)
-            startcountdown=30
+            startcountdown=fadelength
             blinkspeed=1
+            fadeperc=0
         end
     else
         startcountdown-=1
+        fadeperc=(fadelength-startcountdown)/fadelength
         if startcountdown<1 then
             startgame()
             blinkspeed=7
             startcountdown=-1
+            fadeperc=0
         end
     end
 end
@@ -96,15 +103,18 @@ function update_levelover()
     if startcountdown<0 then
         if (btn(fire2)) then
             sfx(13)
-            startcountdown=30
+            startcountdown=fadelength
             blinkspeed=1
+            fadeperc=0
         end
     else
         startcountdown-=1
+        fadeperc=(fadelength-startcountdown)/fadelength
         if startcountdown<1 then
             nextlevel()
             blinkspeed=7
             startcountdown=-1
+            fadeperc=0
         end
     end
 end
@@ -662,6 +672,8 @@ function _draw()
     elseif (mode=="levelover") then
         draw_levelover()
     end
+    pal()
+    if fadeperc!=0 then fadepal(fadeperc) end
 end
 
 function draw_start()
@@ -672,7 +684,8 @@ function draw_start()
 end
 
 function draw_gameover()
-    cls(orange)
+    cls()
+    rectfill(0,0,127,127,orange)
     print("game over",45,40,white)
     print("press ❎ to start ",30,60, blinkred)
 end
@@ -785,6 +798,7 @@ function deflx_ball_box(bx, by, bdx, bdy, tx, ty, tw, th)
 end
 
 -------juicy stuff---------
+--shake screen
 function doshake()
     local shakex=(16-rnd(32))*shake
     local shakey=(16-rnd(32))*shake
@@ -793,6 +807,7 @@ function doshake()
     if shake<0.05 then shake=0 end
 end
 
+--blinking text
 function doblink()
     local green_seq = {dark_green, green, white, green}
     local red_seq={dark_purple,red,pink,red}
@@ -807,6 +822,21 @@ function doblink()
         if blinkred_i>#red_seq then blinkred_i=1 end
     end
 end 
+
+--fading
+function fadepal(_perc)
+    local p=flr(mid(0,_perc*100,100))
+    local kmax, col, dpal, j, k
+    dpal={0,1,1,2,1,13,6,4,4,9,3,13,1,13,14}
+    for j=1,15 do
+        col=j
+        kmax=(p+(j*1.46))/22
+        for k=1,kmax do
+            col=dpal[col]
+        end
+        pal(j,col,1)
+    end 
+end
 
 -->8
 --test
