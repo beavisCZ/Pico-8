@@ -4,8 +4,7 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 34
--- todo:
+-- finished tutorial 35
 
 -- 7. juiciness 
     --arrow animation 
@@ -39,6 +38,10 @@ function _init()
     fadeperc=0
     fadelength=40
     startcountdown=-1
+
+    arrowframe=0
+    arrowmult=1
+    arrowmult2=1
 end
 
 function _update60()
@@ -65,7 +68,7 @@ function update_start()
             sfx(13)
             startcountdown=fadelength
             blinkspeed=1
-            fadeperc=0
+            --fadeperc=0
         end
     else
         startcountdown-=1
@@ -74,7 +77,7 @@ function update_start()
             startgame()
             blinkspeed=7
             startcountdown=-1
-            fadeperc=0
+            --fadeperc=0
         end
     end
 end
@@ -85,7 +88,7 @@ function update_gameover()
             sfx(13)
             startcountdown=fadelength
             blinkspeed=1
-            fadeperc=0
+            --fadeperc=0
         end
     else
         startcountdown-=1
@@ -94,7 +97,7 @@ function update_gameover()
             startgame()
             blinkspeed=7
             startcountdown=-1
-            fadeperc=0
+            --fadeperc=0
         end
     end
 end
@@ -105,7 +108,7 @@ function update_levelover()
             sfx(13)
             startcountdown=fadelength
             blinkspeed=1
-            fadeperc=0
+            --fadeperc=0
         end
     else
         startcountdown-=1
@@ -114,7 +117,7 @@ function update_levelover()
             nextlevel()
             blinkspeed=7
             startcountdown=-1
-            fadeperc=0
+            --fadeperc=0
         end
     end
 end
@@ -123,6 +126,11 @@ function update_game()
     local buttpress=false
     local nextx, nexty
 
+    --fade in game
+    if fadeperc!=0 then
+        fadeperc-=0.05
+        if fadeperc<0 then fadeperc=0 end
+    end
     --******powerups*******
     --speed down powerup
     if timer_slow>0 then
@@ -702,7 +710,14 @@ function draw_game()
     for i=1,#ball do
         circfill(ball[i].x,ball[i].y,ball_r,ball_c)   
         if ball[i].stuck then
-            line(ball[i].x+ball[i].dx*4, ball[i].y+ball[i].dy*4, ball[i].x+ball[i].dx*6, ball[i].y+ball[i].dy*6, 10)          
+            pset(ball[i].x+ball[i].dx*4*arrowmult, ball[i].y+ball[i].dy*4*arrowmult,10)
+            pset(ball[i].x+ball[i].dx*4*arrowmult2, ball[i].y+ball[i].dy*4*arrowmult2,10)
+--            pset(ball[i].x+ball[i].dx*5*arrowmult, ball[i].y+ball[i].dy*5*arrowmult,10)
+--            pset(ball[i].x+ball[i].dx*6*arrowmult, ball[i].y+ball[i].dy*6*arrowmult,10)
+            --line(ball[i].x+ball[i].dx*4*arrowmult, 
+            --ball[i].y+ball[i].dy*4*arrowmult, 
+            --ball[i].x+ball[i].dx*6*arrowmult, 
+            --ball[i].y+ball[i].dy*6*arrowmult, 10)          
         end
     end
 
@@ -811,6 +826,8 @@ end
 function doblink()
     local green_seq = {dark_green, green, white, green}
     local red_seq={dark_purple,red,pink,red}
+
+    --txt blinking
     blinkframe+=1
     if blinkframe>blinkspeed then 
         blinkframe=0
@@ -821,6 +838,16 @@ function doblink()
         if blinkgreen_i>#green_seq then blinkgreen_i=1 end
         if blinkred_i>#red_seq then blinkred_i=1 end
     end
+
+    --arrow anim
+    arrowframe+=1
+    if arrowframe>30 then
+        arrowframe=0
+    end
+    arrowmult=1+(2*(arrowframe/30))
+    local tmpf=arrowframe+15
+    if tmpf>30 then tmpf=tmpf-30 end
+    arrowmult2=1+(2*(tmpf/30))
 end 
 
 --fading
@@ -842,10 +869,10 @@ end
 --test
 __gfx__
 0000000006777760067777600677776006777760f677776f06777760067777600000000000000000000000000000000000000000000000000000000000000000
-00000000559949955577777555b33bb555ccccc55500000555e222e5558888850000000000000000000000000000000000000000000000000000000000000000
-00700700559499955577877555b3bbb555c1c1c55580008555e222e5558a88850000000000000000000000000000000000000000000000000000000000000000
-00077000559949955578887555b3bbb5551ccc155508080555e2e2e555888a850000000000000000000000000000000000000000000000000000000000000000
-00077000559499955577877555b33bb555c1c1c55580008555e2e2e5558a88850000000000000000000000000000000000000000000000000000000000000000
+00000000559949955577777555b33bb555ccccc55500000555eeaee5558888850000000000000000000000000000000000000000000000000000000000000000
+00700700559499955577877555b3bbb555c1c1c55580008555eaaae5558a88850000000000000000000000000000000000000000000000000000000000000000
+00077000559949955578887555b3bbb5551ccc155508080555eeaee555888a850000000000000000000000000000000000000000000000000000000000000000
+00077000559499955577877555b33bb555c1c1c55580008555eaeae5558a88850000000000000000000000000000000000000000000000000000000000000000
 00700700059999500577775005bbbb5005cccc50f500005f05eeee50058888500000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000ffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000ffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000
