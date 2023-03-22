@@ -4,11 +4,15 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 35
+-- finished tutorial 39
 
 -- 7. juiciness 
-    --arrow animation 
     --particles
+        -- death
+        -- collision
+        -- pickup
+        -- explosion
+    -- level setup
 
 -- 8. high score
 -- 9. UI
@@ -42,10 +46,16 @@ function _init()
     arrowframe=0
     arrowmult=1
     arrowmult2=1
+
+    --particles
+    part={}
+    lasthitx=0
+    lasthity=0
 end
 
 function _update60()
     doblink()
+    updateparts()
     if (mode=="game") then
         update_game()   
     --        slowmo=slowmo+1
@@ -152,10 +162,10 @@ function update_game()
 
     --megaball
     if timer_megaball>0 then
-        ball_c=8
+        ball_c=red
         timer_megaball-=1
     else
-        ball_c=10
+        ball_c=yellow
     end
 
     if (btn(left)) then
@@ -209,6 +219,9 @@ function update_game()
     if levelfinished() then 
         levelover()
     end           
+
+    --animate bricks
+    reboundbricks()
 
 end
 
@@ -291,6 +304,9 @@ function update_ball(bi)
         for i=1,#brick do
             if brick[i].v then
                 if (ball_box(nextx, nexty, brick[i].x, brick[i].y, brick_w, brick_h)) then
+                    lasthitx=myball.dx
+                    lasthity=myball.dy
+
                     if (timer_megaball<=0) or (timer_megaball>0 and brick[i].t=="i")  then
                         if (deflx_ball_box(myball.x, myball.y, myball.dx, myball.dy, brick[i].x, brick[i].y, brick_w, brick_h)) then
                             myball.dx=-myball.dx
@@ -307,6 +323,10 @@ function update_ball(bi)
         --move ball
         myball.x=nextx
         myball.y=nexty
+        
+        --trail particle
+        spawntrail(nextx, nexty)
+
 
         if (nexty>127) then
             sfx(2)
@@ -377,35 +397,51 @@ function powerupget(_p)
     end
 end
 
-function hitbrick(_i, _combo)
+function hitbrick(_i, _combo)  
+    local flashtime=14
     if (brick[_i].t=="b") then
+        --base brick
         sfx(3+combo)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
+        brick[_i].flash=flashtime
         brick[_i].v=false
+        --spawn particles
+        shatterbrick(brick[_i], lasthitx, lasthity)
     elseif (brick[_i].t=="i") then
+        --indestructible brick
         sfx(10)
     elseif (brick[_i].t=="h") then
+        --hardened brick
         sfx(10)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
         if powerup!=6 then
+            brick[_i].flash=flashtime
             brick[_i].t="b"
         else
+            brick[_i].flash=flashtime
             brick[_i].v=false
+            shatterbrick(brick[_i], lasthitx, lasthity)
         end
     elseif (brick[_i].t=="p") then
+        --powerup brick
         sfx(3+combo)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
-        --TODO trigger power up
         spawnpill(brick[_i].x+1, brick[_i].y)
+        brick[_i].flash=flashtime
         brick[_i].v=false
+        --spawn particles
+        shatterbrick(brick[_i], lasthitx, lasthity)
     elseif (brick[_i].t=="s") then
+        --explosion brick
         sfx(3+combo)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
         brick[_i].t="zz"
+        --spawn particles
+        shatterbrick(brick[_i], lasthitx, lasthity)
     end
 end
 
@@ -452,7 +488,7 @@ end
 function startgame()
     --ball radius
     ball_r=2
-    ball_c=10
+    ball_c=yellow
 
     pad_x=52
     pad_dx=0
@@ -656,6 +692,9 @@ function addbrick(_x,_y,_t)
     _b.y=20+(_y-1)*(brick_h+2)
     _b.t=_t
     _b.v=true
+    _b.flash=0
+    _b.ox=0 --offset for bouncing
+    _b.oy=0
     add(brick,_b)
 end
 
@@ -707,41 +746,37 @@ end
 function draw_game()
     cls()
     rectfill(0,0,127,127,dark_blue) --black border when screen shaking instead of cls
-    for i=1,#ball do
-        circfill(ball[i].x,ball[i].y,ball_r,ball_c)   
-        if ball[i].stuck then
-            pset(ball[i].x+ball[i].dx*4*arrowmult, ball[i].y+ball[i].dy*4*arrowmult,10)
-            pset(ball[i].x+ball[i].dx*4*arrowmult2, ball[i].y+ball[i].dy*4*arrowmult2,10)
---            pset(ball[i].x+ball[i].dx*5*arrowmult, ball[i].y+ball[i].dy*5*arrowmult,10)
---            pset(ball[i].x+ball[i].dx*6*arrowmult, ball[i].y+ball[i].dy*6*arrowmult,10)
-            --line(ball[i].x+ball[i].dx*4*arrowmult, 
-            --ball[i].y+ball[i].dy*4*arrowmult, 
-            --ball[i].x+ball[i].dx*6*arrowmult, 
-            --ball[i].y+ball[i].dy*6*arrowmult, 10)          
-        end
-    end
 
     --draw bricks
     for i=1,#brick do
-        if brick[i].v then
-            if brick[i].t == "b" then
+        local _b=brick[i]
+        if _b.v or _b.flash>0 then
+            if _b.flash>0 then
+                brickcol=white
+                _b.flash-=1
+            elseif _b.t == "b" then
                 brickcol=pink
-            elseif brick[i].t == "i" then
+            elseif _b.t == "i" then
                 brickcol=dark_gray
-            elseif brick[i].t == "h" then
+            elseif _b.t == "h" then
                 brickcol=light_gray
-            elseif brick[i].t == "s" then
+            elseif _b.t == "s" then
                 brickcol=yellow
-            elseif brick[i].t == "z" then
+            elseif _b.t == "z" then
                 brickcol=red
-            elseif brick[i].t == "zz" then
+            elseif _b.t == "zz" then
                 brickcol=orange
-            elseif brick[i].t == "p" then
+            elseif _b.t == "p" then
                 brickcol=blue
             end
-            rectfill(brick[i].x, brick[i].y, brick[i].x+brick_w, brick[i].y+brick_h, brickcol)
+            local _bx=_b.x+_b.ox
+            local _by=_b.y+_b.oy
+            rectfill(_bx, _by, _bx+brick_w, _by+brick_h, brickcol)
         end
     end
+
+    --particles
+    drawparts()
 
     for i=1, #pill do
         if pill[i].t==5 then
@@ -752,8 +787,20 @@ function draw_game()
         palt()
     end
 
+    for i=1,#ball do
+        circfill(ball[i].x,ball[i].y,ball_r,ball_c)   
+        if ball[i].stuck then
+            pset(ball[i].x+ball[i].dx*4*arrowmult, ball[i].y+ball[i].dy*4*arrowmult,10)
+            pset(ball[i].x+ball[i].dx*4*arrowmult2, ball[i].y+ball[i].dy*4*arrowmult2,10)
+            --line(ball[i].x+ball[i].dx*4*arrowmult, 
+            --ball[i].y+ball[i].dy*4*arrowmult, 
+            --ball[i].x+ball[i].dx*6*arrowmult, 
+            --ball[i].y+ball[i].dy*6*arrowmult, 10)          
+        end
+    end
+
     rectfill(pad_x,pad_y,pad_x+pad_w,pad_y+pad_h,pad_c)
-    
+
     rectfill(0,0,128,6,black)
     if debug!="" then
         print(debug,1,1,white)
@@ -839,12 +886,14 @@ function doblink()
         if blinkred_i>#red_seq then blinkred_i=1 end
     end
 
-    --arrow anim
+    --ball trajectory anim
+    --first point
     arrowframe+=1
     if arrowframe>30 then
         arrowframe=0
     end
     arrowmult=1+(2*(arrowframe/30))
+    --second point
     local tmpf=arrowframe+15
     if tmpf>30 then tmpf=tmpf-30 end
     arrowmult2=1+(2*(tmpf/30))
@@ -863,6 +912,120 @@ function fadepal(_perc)
         end
         pal(j,col,1)
     end 
+end
+
+--particle stuff
+--add a partice
+function addpart(_x, _y, _dx, _dy, _type, _maxage, _colors)
+    local _p = {}
+    _p.x=_x
+    _p.y=_y
+    _p.dx=_dx
+    _p.dy=_dy
+    _p.type=_type
+    _p.maxage=_maxage
+    _p.age=0
+    _p.color=_colors[1]
+    _p.colarray=_colors
+    add(part,_p)
+end
+
+--spawn a trail particle
+function spawntrail(_x, _y)
+    if rnd()<0.7 then
+        local _ang = rnd()
+        local _ox = sin(_ang)*ball_r*0.6
+        local _oy = cos(_ang)*ball_r*0.6
+        if ball_c==yellow then           
+            addpart(_x+_ox, _y+_oy, 0, 0, 0, 15+rnd(15),{yellow, orange, brown})
+        else
+            addpart(_x+_ox, _y+_oy, 0, 0, 0, 15+rnd(15),{red, dark_purple})
+        end
+    end
+end
+
+--shatter brick
+function shatterbrick(_b, _vx, _vy)
+    --bump brick
+    _b.ox= _vx*4
+    _b.oy= _vy*4
+
+    for i=0,15 do
+        local _ang = rnd()
+        local _dx = sin(_ang)*rnd(1)+_vx*0.5
+        local _dy = cos(_ang)*rnd(1)+_vy*0.5
+        addpart(_b.x+brick_w/2, _b.y+brick_h/2, 
+        _dx, 
+        _dy, 
+        1, 120,{white,light_gray, dark_gray})      
+    end
+-- break every pixel of brick
+--    for ly=0, brick_h do
+--        for lx=0, brick_w do
+--            local _ang = rnd()
+--            local _dx = sin(_ang)*0.5
+--            local _dy = cos(_ang)*0.5
+--            addpart(_b.x+lx, _b.y+ly, 
+--            _dx, 
+--            _dy, 
+--            1, 60,{white,light_gray, dark_gray})          
+--        end
+--    end
+end
+
+function updateparts()
+    local _p
+    for i=#part,1,-1 do
+        _p=part[i]
+        _p.age+=1
+        if _p.age>=_p.maxage then
+            del(part, part[i])
+        elseif _p.x<-20 or _p.x>148 then
+            del(part, part[i])
+        elseif _p.y<-20 or _p.y>148 then
+            del(part, part[i])
+        else
+            --change colors
+            if #_p.colarray>1 then
+                local _ci = _p.age/_p.maxage
+                _ci=flr(_ci*#_p.colarray)+1
+                _p.color=_p.colarray[_ci]
+            end
+        end
+
+        --move particles
+        _p.x+=_p.dx
+        _p.y+=_p.dy
+
+        --add gravity
+        if _p.type==1 then
+            _p.dy+=0.02
+        end
+    end
+end
+
+function drawparts()
+    local _p
+    for i=1, #part do
+        _p=part[i]
+        --pixel particle
+        if _p.type==0 or _p.type==1 then
+            pset(_p.x, _p.y, _p.color)
+        end        
+    end 
+end
+
+--rebound bumped bricks
+function reboundbricks()
+    for i=1, #brick do
+        local _b=brick[i]
+        if _b.v or _b.flash>0 then
+            if _b.ox!=0 or _b.oy!=0 then
+                _b.ox=_b.ox/8
+                _b.oy=_b.oy/8
+            end
+        end
+    end
 end
 
 -->8
