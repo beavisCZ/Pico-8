@@ -4,15 +4,14 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 39
+-- finished tutorial 42
 
 -- 7. juiciness 
     --particles
         -- death
-        -- collision
         -- pickup
         -- explosion
-    -- level setup
+    -- particle limiter ??
 
 -- 8. high score
 -- 9. UI
@@ -239,6 +238,7 @@ function update_ball(bi)
         if nextx<2 or nextx>125 then
             nextx=mid(2,nextx,125)
             myball.dx=-myball.dx
+            spawnsmoke(nextx, nexty)
             sfx(0)
         end
         if nexty<8  then
@@ -285,6 +285,7 @@ function update_ball(bi)
             end
             sfx(1)
             combo=0
+            spawnsmoke(nextx, nexty)
             
             --catch powerup
             if sticky and myball.dy<0 then
@@ -398,7 +399,7 @@ function powerupget(_p)
 end
 
 function hitbrick(_i, _combo)  
-    local flashtime=8
+    local flashtime=14
     if (brick[_i].t=="b") then
         --base brick
         sfx(3+combo)
@@ -417,7 +418,7 @@ function hitbrick(_i, _combo)
         score+=10+(combo*10)
         if _combo then combo=mid(0,combo+1,6) end
         if powerup!=6 then
-            brick[_i].flash=flashtime
+            --brick[_i].flash=flashtime
             brick[_i].t="b"
         else
             brick[_i].flash=flashtime
@@ -694,9 +695,9 @@ function addbrick(_x,_y,_t)
     _b.v=true
     _b.flash=0
     _b.ox=0 --offset for bouncing
-    _b.oy=-(64+flr(rnd(32)))
+    _b.oy=-(128+rnd(128))
     _b.dx=0 --speed
-    _b.dy=0
+    _b.dy=rnd(50)
     add(brick,_b)
 end
 
@@ -918,7 +919,11 @@ end
 
 --particle stuff
 --add a partice
-function addpart(_x, _y, _dx, _dy, _type, _maxage, _colors)
+--type 0 - static pixel
+--type 1 - gravity pixel
+--type 2 - ball of smoke 
+--type 3 - rotating sprite
+function addpart(_x, _y, _dx, _dy, _type, _maxage, _colors, _size)
     local _p = {}
     _p.x=_x
     _p.y=_y
@@ -929,6 +934,10 @@ function addpart(_x, _y, _dx, _dy, _type, _maxage, _colors)
     _p.age=0
     _p.color=_colors[1]
     _p.colarray=_colors
+    _p.rotation=0
+    _p.rottimer=0
+    _p.size=_size
+    _p.originalsize=_size
     add(part,_p)
 end
 
@@ -939,29 +948,55 @@ function spawntrail(_x, _y)
         local _ox = sin(_ang)*ball_r*0.6
         local _oy = cos(_ang)*ball_r*0.6
         if ball_c==yellow then           
-            addpart(_x+_ox, _y+_oy, 0, 0, 0, 15+rnd(15),{yellow, orange, brown})
+            addpart(_x+_ox, _y+_oy, 0, 0, 0, 15+rnd(15),{yellow, orange, brown},0)
         else
-            addpart(_x+_ox, _y+_oy, 0, 0, 0, 15+rnd(15),{red, dark_purple})
+            addpart(_x+_ox, _y+_oy, 0, 0, 0, 15+rnd(15),{red, dark_purple},0)
         end
     end
 end
 
+--spawn smoke
+function spawnsmoke(_x, _y)
+    for i=0,5 do
+        local _ang = rnd()
+        local _dx = sin(_ang)*1.5
+        local _dy = cos(_ang)*1.5     
+        addpart(_x, _y, _dx, _dy, 2, 20+rnd(15),{white, light_gray, dark_gray}, 2+rnd(1.5))
+    end
+
+end
+
 --shatter brick
 function shatterbrick(_b, _vx, _vy)
+    shake+=0.07
+    sfx(15)
     --bump brick
-    _b.dx= _vx*2
-    _b.dy= _vy*2
+    _b.dx= _vx*0.7
+    _b.dy= _vy*0.7
 
-    for i=0,15 do
+    for i=0,10 do
         local _ang = rnd()
         local _dx = sin(_ang)*rnd(1)+_vx*0.5
         local _dy = cos(_ang)*rnd(1)+_vy*0.5
         addpart(_b.x+brick_w/2, _b.y+brick_h/2, 
         _dx, 
         _dy, 
-        1, 120,{white,light_gray, dark_gray})      
+        1, 120,{white,light_gray, dark_gray},0)      
     end
--- break every pixel of brick
+ 
+    --chunks
+    local chunks=2+flr(rnd(5))
+    for i=1,chunks do
+        local _ang = rnd()
+        local _dx = sin(_ang)*rnd(1)+_vx*0.5
+        local _dy = cos(_ang)*rnd(1)+_vy*0.5
+        addpart(_b.x+brick_w/2, _b.y+brick_h/2, 
+        _dx, 
+        _dy, 
+        3, 120,{flr(rnd(8)+16)},0)      
+    end
+ 
+ -- break every pixel of brick
 --    for ly=0, brick_h do
 --        for lx=0, brick_w do
 --            local _ang = rnd()
@@ -1000,8 +1035,32 @@ function updateparts()
         _p.y+=_p.dy
 
         --add gravity
-        if _p.type==1 then
+        if _p.type==1 or _p.type==3 then
             _p.dy+=0.02
+        end
+
+        --rotate
+        if _p.type==3 then
+            _p.rottimer+=1
+            if _p.rottimer>=10 then
+                _p.rotation+=1
+                _p.rottimer=0
+                if _p.rotation>=4 then
+                    _p.rotation=0
+                end
+            end
+        end 
+        
+        --shrink
+        if _p.type==2 then
+            local _ci =1- (_p.age/_p.maxage)
+            _p.size = _ci*_p.originalsize
+        end
+
+        --friction
+        if _p.type==2 then
+            _p.dx=_p.dx/1.2
+            _p.dy=_p.dy/1.2
         end
     end
 end
@@ -1013,6 +1072,24 @@ function drawparts()
         --pixel particle
         if _p.type==0 or _p.type==1 then
             pset(_p.x, _p.y, _p.color)
+        elseif _p.type==2 then
+            circfill(_p.x, _p.y, _p.size, _p.color)
+        elseif _p.type==3 then
+            local _fx, _fy
+            if _p.rotation==1 then
+                _fx=false
+                _fy=true
+            elseif _p.rotation==2 then
+                _fx=true
+                _fy=true
+            elseif _p.rotation==3 then
+                _fx=true
+                _fy=false
+            else
+                _fx=false
+                _fy=false
+            end
+            spr(_p.color, _p.x, _p.y, 1, 1, _fx, _fy)
         end        
     end 
 end
@@ -1021,22 +1098,34 @@ end
 function animatebricks()
     for i=1, #brick do
         local _b=brick[i]
-        if _b.v or _b.flash>0 then
-            _b.ox+=_b.dx
-            _b.oy+=_b.dy
+        if (_b.v or _b.flash>0) then
+            --is brick moving or off default position
+            if (_b.ox!=0 or _b.oy!=0 or _b.dx!=0 or _b.dy!=0) then
+                --apply speed
+                _b.ox+=_b.dx
+                _b.oy+=_b.dy
 
-            _b.dx-=_b.ox/100
-            _b.dy-=_b.oy/100
-            if abs(_b.dx)>abs(_b.ox) then
-                _b.dx=_b.dx/1.3
-            end
-            if abs(_b.dy)>abs(_b.oy) then
-                _b.dy=_b.dy/1.3
-            end
+                --decrease speed
+                _b.dx-=_b.ox/10
+                _b.dy-=_b.oy/10
 
-            if abs(_b.oy)<=0.25 then
-                _b.oy=0
-                _b.dy=0
+                --damping
+                if abs(_b.dx)>abs(_b.ox) then
+                    _b.dx=_b.dx/1.4
+                end
+                if abs(_b.dy)>abs(_b.oy) then
+                    _b.dy=_b.dy/1.4
+                end
+
+                --stabilisation
+                if abs(_b.ox)<=0.05 and abs(_b.dx)<=0.05 then
+                    _b.ox=0
+                    _b.dx=0
+                end
+                if abs(_b.oy)<=0.05 and abs(_b.dy)<=0.05 then
+                    _b.oy=0
+                    _b.dy=0
+                end
             end
         end
     end
@@ -1055,10 +1144,10 @@ __gfx__
 0000000000000000000000000000000000000000ffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffaaaaaaaaaaaaaaaa66666666666666660000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-feeeeeedabbbbbb3a9999998644444456cccccc10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-feeeeeedabbbbbb3a9999998644444456cccccc10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-dddddddd333333338888888855555555111111110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00007000000000000007000000000000000770000000000000700000000007000000000000000000000000000000000000000000000000000000000000000000
+00077700000700000007700000770000007770000000700000070000000777000000000000000000000000000000000000000000000000000000000000000000
+00077000000777000077000000077000007000000007700000770000000770000000000000000000000000000000000000000000000000000000000000000000
+00000000000770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 0001000016330163301632016320163101631020300203001f3001a000170001700018400174001640016400164001b40023400264002c4002d4001f0001f0002100021000220002300036000320002c00029000
 000100002233022330223202232022310223100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1075,3 +1164,4 @@ __sfx__
 000800002465019650126500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000a00001c7501d750207501d7501e750000002070021700000000000029700000002a7002f700000003370000000367003470000000000000000036700000000000000000000000000000000000000000000000
 00100000107500f750000000f750000000c750000000b750000000675000000047500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+530200003e630386302e630236301b63416625126240f6250c6140c61500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
