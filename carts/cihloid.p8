@@ -221,7 +221,7 @@ function update_game()
     end           
 
     --animate bricks
-    reboundbricks()
+    animatebricks()
 
 end
 
@@ -398,7 +398,7 @@ function powerupget(_p)
 end
 
 function hitbrick(_i, _combo)  
-    local flashtime=14
+    local flashtime=8
     if (brick[_i].t=="b") then
         --base brick
         sfx(3+combo)
@@ -694,7 +694,9 @@ function addbrick(_x,_y,_t)
     _b.v=true
     _b.flash=0
     _b.ox=0 --offset for bouncing
-    _b.oy=0
+    _b.oy=-(64+flr(rnd(32)))
+    _b.dx=0 --speed
+    _b.dy=0
     add(brick,_b)
 end
 
@@ -947,8 +949,8 @@ end
 --shatter brick
 function shatterbrick(_b, _vx, _vy)
     --bump brick
-    _b.ox= _vx*4
-    _b.oy= _vy*4
+    _b.dx= _vx*2
+    _b.dy= _vy*2
 
     for i=0,15 do
         local _ang = rnd()
@@ -1016,13 +1018,25 @@ function drawparts()
 end
 
 --rebound bumped bricks
-function reboundbricks()
+function animatebricks()
     for i=1, #brick do
         local _b=brick[i]
         if _b.v or _b.flash>0 then
-            if _b.ox!=0 or _b.oy!=0 then
-                _b.ox=_b.ox/8
-                _b.oy=_b.oy/8
+            _b.ox+=_b.dx
+            _b.oy+=_b.dy
+
+            _b.dx-=_b.ox/100
+            _b.dy-=_b.oy/100
+            if abs(_b.dx)>abs(_b.ox) then
+                _b.dx=_b.dx/1.3
+            end
+            if abs(_b.dy)>abs(_b.oy) then
+                _b.dy=_b.dy/1.3
+            end
+
+            if abs(_b.oy)<=0.25 then
+                _b.oy=0
+                _b.dy=0
             end
         end
     end
