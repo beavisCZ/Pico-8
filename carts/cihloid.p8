@@ -963,13 +963,24 @@ function spawnsmoke(_x, _y)
         local _dy = cos(_ang)*1.5     
         addpart(_x, _y, _dx, _dy, 2, 20+rnd(15),{white, light_gray, dark_gray}, 2+rnd(1.5))
     end
+end
 
+--spawn pill smoke
+function spawnpillsmoke(_x, _y, _pill))
+    for i=0,10 do
+        local _ang = rnd()
+        local _dx = sin(_ang)*1.8
+        local _dy = cos(_ang)*1.8     
+        addpart(_x, _y, _dx, _dy, 2, 20+rnd(15),{white, light_gray, dark_gray}, 2+rnd(1.5))
+    end
 end
 
 --shatter brick
 function shatterbrick(_b, _vx, _vy)
-    shake+=0.07
-    sfx(15)
+    if shake<0.2 then
+        shake+=0.07
+    end
+        sfx(15)
     --bump brick
     _b.dx= _vx*0.7
     _b.dy= _vy*0.7
