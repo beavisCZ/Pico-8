@@ -4,12 +4,11 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 42
+-- finished tutorial 43
 
 -- 7. juiciness 
     --particles
         -- death
-        -- pickup
         -- explosion
     -- particle limiter ??
 
@@ -203,6 +202,7 @@ function update_game()
             break --must break from loop, array changed
         elseif box_box(pad_x, pad_y, pad_w, pad_h, pill[i].x, pill[i].y, 8, 6) then
             powerupget(pill[i].t)
+            spawnpillsmoke(pill[i].x, pill[i].y,pill[i].t)
             del(pill,pill[i])
             break --must break from loop, array changed
             sfx(11)
@@ -366,7 +366,7 @@ end
 function powerupget(_p)
     if _p==1 then 
         --slowdown
-        timer_slow = 900
+        timer_slow = 300
     elseif _p==2 then
         --life
         lives+=1
@@ -383,15 +383,15 @@ function powerupget(_p)
         end
     elseif _p==4 then
         --expand
-        timer_expand=900
+        timer_expand=300
         timer_reduce=0
     elseif _p==5 then
         --reduce
         timer_expand=0
-        timer_reduce=900
+        timer_reduce=300
     elseif _p==6 then
         --megaball
-        timer_megaball=900
+        timer_megaball=200
     elseif _p==7 then
         --multiball
         multiball()
@@ -966,12 +966,37 @@ function spawnsmoke(_x, _y)
 end
 
 --spawn pill smoke
-function spawnpillsmoke(_x, _y, _pill))
-    for i=0,10 do
+function spawnpillsmoke(_x, _y, _pill)
+
+    local _mycol 
+    if _pill == 1 then
+        --slowdown orange
+        _mycol = {9,9,4,4,0}
+    elseif _pill == 2 then
+        --life white
+        _mycol = {7,7,6,5,0}
+    elseif _pill == 3 then
+        --catch green
+        _mycol = {11,11,3,3,0}
+    elseif _pill == 4 then
+        --expand blue
+        _mycol = {12,12,2,2,0}
+    elseif _pill == 5 then
+        --reduce black
+        _mycol = {0,0,5,5,6}
+    elseif _pill == 6 then
+        --megaball pink
+        _mycol = {14,14,13,2,0}
+    else
+        --multiball red
+        _mycol = {8,8,8,4,2,0}
+    end
+
+    for i=0,20 do
         local _ang = rnd()
         local _dx = sin(_ang)*1.8
-        local _dy = cos(_ang)*1.8     
-        addpart(_x, _y, _dx, _dy, 2, 20+rnd(15),{white, light_gray, dark_gray}, 2+rnd(1.5))
+        local _dy = cos(_ang)*1.8 
+        addpart(_x, _y, _dx, _dy, 2, 30+rnd(15),_mycol, 3+rnd(1.5))
     end
 end
 
