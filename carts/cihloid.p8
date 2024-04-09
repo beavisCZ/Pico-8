@@ -4,13 +4,7 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 43
-
--- 7. juiciness 
-    --particles
-        -- death
-        -- explosion
-    -- particle limiter ??
+-- finished tutorial 44
 
 -- 8. high score
 -- 9. UI
@@ -19,6 +13,11 @@ __lua__
 -- 10. better collision detection
 -- 11. gameplay tweaks 
     --smaller paddle
+-- 12. level design
+-- 13. sound
+    -- level over fanfare
+    -- start screen music
+    -- high score music
 
 
 function _init()
@@ -65,6 +64,8 @@ function _update60()
         update_start()
     elseif (mode=="gameover") then
         update_gameover()
+    elseif (mode=="gameoverwait") then
+        update_gameoverwait()
     elseif (mode=="levelover") then
         update_levelover()
     end
@@ -90,6 +91,14 @@ function update_start()
     end
 end
 
+function update_gameoverwait()
+    govercountdown-=1
+    if govercountdown<=0 then 
+        govercountdown= -1
+        mode="gameover"
+    end
+end
+
 function update_gameover()
     if startcountdown<0 then
         if (btn(fire2)) then
@@ -107,7 +116,7 @@ function update_gameover()
             startcountdown=-1
             --fadeperc=0
         end
-    end
+    end   
 end
 
 function update_levelover()
@@ -127,7 +136,7 @@ function update_levelover()
             startcountdown=-1
             --fadeperc=0
         end
-    end
+    end 
 end
 
 function update_game()  
@@ -331,6 +340,7 @@ function update_ball(bi)
 
         if (nexty>127) then
             sfx(2)
+            spawndeath(myball.x, myball.y)
             if #ball==1 then 
                 shake+=0.4
                 lives-=1
@@ -476,6 +486,7 @@ end
 function explodebrick(_i)  
     shake+=0.15 
     sfx(12)
+    spawnexplosion(brick[_i].x, brick[_i].y)
     for i=1, #brick do
         if i!=_i
         and abs(brick[i].x-brick[_i].x)<=brick_w+2
@@ -511,8 +522,9 @@ function startgame()
     levelnum=1
     
     levels={}
-    levels[1]="x/i9i/b9b/bbsbbsbbsbb/h9h/p9p/p9p/p9p"
-    --levels[1]="x/x/x/x/x/xxxxbbbxxx"
+    --levels[1]="x/i9i/b9b/bbsbbsbbsbb/h9h/p9p/p9p/p9p"
+    --levels[1]="x/x/x/x/x/sbbpsbspsbs"
+    levels[1]="x/x/x/x/x/x4b3/s9s2"
     levels[2]="i9i/b2ibbib2b/bsbibbibsbb/bpbibbibpbb/b3hhb3b/s9s"
     levels[3]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
     pill={}
@@ -548,12 +560,15 @@ end
 
 function gameover()
     sfx(14)
-    mode="gameover"
+    mode="gameoverwait"
+    govercountdown=60
+    blinkspeed=16
 end
 
 function levelover()
-    draw_game()
     mode="levelover" 
+    lovercountdown=60
+    blinkspeed=16
 end
 
 function serveball()
@@ -720,7 +735,12 @@ function _draw()
     elseif (mode=="gameover") then
         draw_gameover()
     elseif (mode=="levelover") then
+        draw_game()
         draw_levelover()
+--    elseif (mode=="leveloverwait") then
+--        draw_game()
+    elseif (mode=="gameoverwait") then
+        draw_game()
     end
     pal()
     if fadeperc!=0 then fadepal(fadeperc) end
@@ -996,8 +1016,58 @@ function spawnpillsmoke(_x, _y, _pill)
         local _ang = rnd()
         local _dx = sin(_ang)*1.8
         local _dy = cos(_ang)*1.8 
+
+        --pos, speed, type, time to live, color, size
         addpart(_x, _y, _dx, _dy, 2, 30+rnd(15),_mycol, 3+rnd(1.5))
     end
+end
+
+--spawn death particles
+function spawndeath(_x, _y)
+
+    local _mycol = {10,10,9,4,0}
+
+    for i=0,20 do
+        local _ang = rnd()
+        
+        --speed
+        local _dx = sin(_ang)*(1.5+rnd(1.5))
+        local _dy = cos(_ang)*(1.5+rnd(1.5))
+        
+        --pos, speed, type, time to live, color, size
+        addpart(_x, _y, _dx, _dy, 2, 40+rnd(40),_mycol, 4+rnd(2))
+    end
+end
+
+--spawn explosion particles
+function spawnexplosion(_x, _y)
+
+    local _mycol = {0,0,5,5,6}
+
+    --first smoke
+    for i=0,20 do
+        local _ang = rnd()
+        
+        --speed
+        local _dx = sin(_ang)*(1.8+rnd(1.8))
+        local _dy = cos(_ang)*(1.8+rnd(1.8))
+        
+        --pos, speed, type, time to live, color, size
+        addpart(_x, _y, _dx, _dy, 2, 80+rnd(40),_mycol, 3+rnd(6))
+    end
+
+    --second fire
+    _mycol = {7,10,10,9,8}
+    for i=0,30 do
+        local _ang = rnd()
+        
+        --speed
+        local _dx = sin(_ang)*(1.5+rnd(1.5))
+        local _dy = cos(_ang)*(1.5+rnd(1.5))
+        
+        --pos, speed, type, time to live, color, size
+        addpart(_x, _y, _dx, _dy, 2, 30+rnd(15),_mycol, 2+rnd(4))
+    end    
 end
 
 --shatter brick
