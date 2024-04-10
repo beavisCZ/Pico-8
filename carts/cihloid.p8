@@ -4,7 +4,7 @@ __lua__
 -- cihloid
 -- by beaviscz
 
--- finished tutorial 44
+-- finished tutorial 45
 
 -- 8. high score
 -- 9. UI
@@ -28,6 +28,20 @@ function _init()
     mode="start"
     debug=""
 
+    --highscore
+    cartdata("cihloid")
+    hs={}
+    hs1={}
+    hs2={}
+    hs3={}
+    hschars={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9"}
+
+    --reseths()
+    loadhs()
+--    addhs(8000,1,1,1)
+--    addhs(1888,2,2,2)
+
+    
     --juicyness
     shake=0
     blinkframe=0
@@ -48,6 +62,8 @@ function _init()
     part={}
     lasthitx=0
     lasthity=0
+
+   
 end
 
 function _update60()
@@ -523,8 +539,8 @@ function startgame()
     
     levels={}
     --levels[1]="x/i9i/b9b/bbsbbsbbsbb/h9h/p9p/p9p/p9p"
-    --levels[1]="x/x/x/x/x/sbbpsbspsbs"
-    levels[1]="x/x/x/x/x/x4b3/s9s2"
+    levels[1]="x/x/x/x/x/sbbpsbspsbs"
+    --levels[1]="x/x/x/x/x/x4b3/s9s2"
     levels[2]="i9i/b2ibbib2b/bsbibbibsbb/bpbibbibpbb/b3hhb3b/s9s"
     levels[3]="b9/b9/b2x3b2/bbx5bb/b2x3b2/b9/b9"
     pill={}
@@ -749,8 +765,9 @@ end
 function draw_start()
     cls()
     rectfill(0,0,127,127,orange)
-    print("cihloid",50,40,white)
-    print("press ❎ to start ",30,60, blinkred)
+    print("cihloid",50,10,white)   
+    prinths(40)
+    print("press ❎ to start ",30,80, blinkred)
 end
 
 function draw_gameover()
@@ -1233,6 +1250,95 @@ function animatebricks()
                     _b.dy=0
                 end
             end
+        end
+    end
+end
+
+--resets hiscore
+function reseths()
+    hs={10000,5000,2000,1000,500}
+    --pat, mat, god, ass, bam
+    hs1={16,13, 7,1,2}
+    hs2={1,  1,15,19,1}
+    hs3={20,20, 4,19,13}
+    sorths()
+    savehs()
+end
+
+--load hiscore
+function loadhs()
+    local _slot=0
+    if dget(0)==1 then
+        for i=1, 5 do
+            _slot+=1
+            hs[i]=dget(_slot)
+            _slot+=1
+            hs1[i]=dget(_slot)
+            _slot+=1
+            hs2[i]=dget(_slot)
+            _slot+=1
+            hs3[i]=dget(_slot)
+        end 
+        sorths()
+        --debug=hs[1]
+    else
+        --file is empty
+        reseths()
+        --debug="data created"
+    end
+end
+
+--save hiscore
+function savehs()
+    local _slot=0
+    dset(0,1) --flag that save exists
+    for i=1, #hs do
+        _slot+=1
+        dset(_slot,hs[i])
+        _slot+=1
+        dset(_slot,hs1[i])
+        _slot+=1
+        dset(_slot,hs2[i])
+        _slot+=1
+        dset(_slot,hs3[i])
+    end  
+end
+
+function addhs(_score, _c1, _c2, _c3)
+    add(hs,_score)
+    add(hs1,_c1)
+    add(hs2,_c2)
+    add(hs3,_c3)
+    sorths()
+end
+
+function prinths(_x)
+    local _hsyoffset =25
+    rectfill(_x-4,_hsyoffset-2, _x+47, _hsyoffset+6, 8)
+    print ("high score", _x+2, _hsyoffset, white)
+    for i=1, 5 do
+        --rank and name
+        local _name=hschars[hs1[i]]..hschars[hs2[i]]..hschars[hs3[i]]
+        print (i..".", _x, _hsyoffset+i*7+4, light_gray)
+        print (_name, _x+10, _hsyoffset+i*7+4, white)
+
+        --score
+        local _score=" "..hs[i]
+        print (_score, _x-#_score*4+45, _hsyoffset+i*7+4, white)
+
+    end
+end
+
+--sort highscore
+function sorths()
+    for i=1, #hs do
+        local j = i
+        while j > 1 and hs[j-1] < hs[j] do
+            hs[j], hs[j-1] = hs[j-1], hs[j]
+            hs1[j], hs1[j-1] = hs1[j-1], hs1[j]
+            hs2[j], hs2[j-1] = hs2[j-1], hs2[j]
+            hs3[j], hs3[j-1] = hs3[j-1], hs3[j]
+            j = j-1
         end
     end
 end
